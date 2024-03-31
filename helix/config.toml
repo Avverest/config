@@ -1,0 +1,23 @@
+theme = 'everforest_light'
+
+[editor]
+line-number = 'relative'
+
+[editor.cursor-shape]
+insert = 'bar'
+normal = 'block'
+select = 'underline'
+
+[editor.file-picker]
+hidden = false
+
+[editor.whitespace]
+render = 'all'
+
+[editor.indent-guides]
+render = true
+skip-levels = 1
+
+
+[keys.normal]
+ret = 'command_mode'
