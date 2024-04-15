@@ -1,19 +1,33 @@
+[language-server]
+biome = { command = "biome", args = ["lsp-proxy"] }
+
 [[language]]
-name = "tsx"
+name = "javascript"
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
 auto-format = true
-formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
-# formatter = { command = "prettier", args = ["--parser", "typescript"] }
 
 [[language]]
 name = "typescript"
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
+# # formatter = { command = "prettier", args = ["--parser", "typescript"] }
 auto-format = true
-formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
-# formatter = { command = "prettier", args = ["--parser", "typescript"] }
 
-# [language-server.efm-lsp-prettier]
-# command = "efm-langserver"
+[[language]]
+name = "tsx"
+auto-format = true
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
+# # formatter = { command = "prettier", args = ["--parser", "typescript"] }
 
-# [language-server.efm-lsp-prettier.config]
-# documentFormatting = true
-# languages = { typescript = [{ formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true }]}
+[[language]]
+name = "jsx"
+auto-format = true
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
 
+[[language]]
+name = "json"
+language-servers = [ { name = "vscode-json-language-server", except-features = [ "format" ] }, "biome" ]
+
+[language-server.rust-analyzer.config.check]
+command = "clippy"
