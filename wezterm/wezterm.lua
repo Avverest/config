@@ -3,18 +3,19 @@ local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
 config.font = wezterm.font 'Hurmit Nerd Font Mono'
-config.font_size = 17
-config.color_scheme = 'Rose Pine'
+config.font_size = 19
+-- config.color_scheme = 'Rose Pine'
+config.color_scheme = 'Terminix Dark (Gogh)'
 
-config.window_background_opacity = 0.9
+config.window_background_opacity = 0.95
 config.macos_window_background_blur = 30
 
 config.window_decorations = 'RESIZE'
 config.window_padding = {
+  top = 0,
   left = 0,
   right = 0,
   bottom = 0,
-  top = 0,
 }
 
 config.window_frame = {
@@ -45,12 +46,8 @@ wezterm.on('update-status', function(window)
     -- Then we draw our text
     { Background = { Color = bg } },
     { Foreground = { Color = fg } },
-    { Text = 'test' .. wezterm.hostname() .. 'test2 ' },
+    { Text = ' ' .. wezterm.hostname() .. ' ' },
   }))
 end)
-
--- config.use_fancy_tab_bar = true
--- config.show_tabs_in_tab_bar = true
--- config.show_new_tab_button_in_tab_bar = false
 
 return config

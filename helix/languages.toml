@@ -17,7 +17,7 @@ auto-format = true
 [[language]]
 name = "typescript"
 language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
 # formatter = { command = "prettier", args = ["--parser", "typescript"] }
 auto-format = true
 
@@ -25,7 +25,7 @@ auto-format = true
 name = "tsx"
 auto-format = true
 language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
 # formatter = { command = "prettier", args = ["--parser", "typescript"] }
 
 [[language]]
