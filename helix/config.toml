@@ -1,8 +1,10 @@
 # theme = 'onelight'
-theme = 'rose_pine_dawn'
+# theme = 'rose_pine_moon'
+theme = 'base16_transparent'
 
 [editor]
 line-number = 'relative'
+popup-border = 'all'
 
 [editor.cursor-shape]
 insert = 'bar'
