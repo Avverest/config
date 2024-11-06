@@ -2,3 +2,7 @@
 /qBittorrent
 /znt
 /.DS*
+.tmp*
+/zed/conversations
+/zed/embeddings
+/zed/prompts

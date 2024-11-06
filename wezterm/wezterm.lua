@@ -7,7 +7,7 @@ config.font_size = 19
 -- config.color_scheme = 'Rose Pine'
 config.color_scheme = 'Terminix Dark (Gogh)'
 
-config.window_background_opacity = 0.95
+config.window_background_opacity = 0.85
 config.macos_window_background_blur = 30
 
 config.window_decorations = 'RESIZE'
