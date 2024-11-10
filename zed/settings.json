@@ -19,15 +19,21 @@
   },
   "theme": {
     "light": "Xcode Classic Light",
-    "dark": "Xcode Classic Dark",
+    "dark": "Rosé Pine"
   },
-  "vim_mode": true,
-  "ui_font_size": 16,
-  "buffer_font_size": 16,
-  "buffer_font_family": "Hurmit Nerd Font Mono",
-  "ui_font_family": "Hurmit Nerd Font Mono",
+  "vim_mode": false,
+  "ui_font_size": 17,
+  "buffer_font_size": 18,
+  // "buffer_font_family": "Hurmit Nerd Font Mono",
+  "buffer_font_family": "JetBrainsMono Nerd Font Mono",
+  // "ui_font_family": "Hurmit Nerd Font Mono",
+  "ui_font_family": "JetBrainsMono Nerd Font",
   "buffer_line_height": "comfortable",
-  "buffer_font_weight": 500,
+  "buffer_font_weight": 200,
   "format_on_save": "off",
-  "preferred_line_length": 110
+  "preferred_line_length": 110,
+  "inlay_hints": {
+    "enabled": false,
+    "show_other_hints": false
+  }
 }

@@ -50,3 +50,8 @@ languages = ["vue"]
 
 [language-server.rust-analyzer.config.check]
 command = "clippy"
+
+[[language]]
+name = "go"
+auto-format = true
+formatter = { command = "goimports" }
