@@ -2,31 +2,36 @@ local wezterm = require 'wezterm'
 
 local config = wezterm.config_builder()
 
--- config.font = wezterm.font 'Hurmit Nerd Font Mono'
-config.font = wezterm.font(
-  'JetBrainsMono Nerd Font Mono',
-  { weight='Light' }
-)
-config.font_size = 20
--- config.color_scheme = 'Rose Pine'
-config.color_scheme = 'Terminix Dark (Gogh)'
-
-config.window_background_opacity = 0.93
-config.macos_window_background_blur = 30
-
-config.window_decorations = 'RESIZE'
-config.window_padding = {
-  top = 0,
-  left = 0,
-  right = 0,
-  bottom = 0,
+local themes = {
+  terminix_dark_gogh = 'Terminix Dark (Gogh)',
+  tokyo_night_storm_gogh = 'Tokyo Night Storm (Gogh)',
+  tokyonight_day = 'tokyonight_day',
 }
 
-config.window_frame = {
-  -- Berkeley Mono for me again, though an idea could be to try a
-  -- serif font here instead of monospace for a nicer look?
-  font = wezterm.font({ family = 'Hurmit Nerd Font Mono', weight = 'Bold' }),
-  font_size = 15,
+-- config.font = wezterm.font 'Hurmit Nerd Font Mono'
+config = {
+  font = wezterm.font(
+    'JetBrainsMono Nerd Font Mono',
+    { weight='Light' }
+  ),
+  font_size = 16,
+  color_scheme = themes.tokyonight_day,
+  -- macos_window_background_blur = 30,
+  -- window_background_opacity = 0.93,
+  enable_tab_bar = false,
+  window_decorations = 'RESIZE',
+  window_padding = {
+    top = 0,
+    left = 0,
+    right = 0,
+    bottom = 0,
+  },
+  window_frame = {
+    -- Berkeley Mono for me again, though an idea could be to try a
+    -- serif font here instead of monospace for a nicer look?
+    font = wezterm.font({ family = 'Hurmit Nerd Font Mono', weight = 'Bold' }),
+    font_size = 10,
+  },
 }
 
 wezterm.on('update-status', function(window)
