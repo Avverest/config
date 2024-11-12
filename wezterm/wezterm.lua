@@ -1,30 +1,24 @@
 local wezterm = require 'wezterm'
+local fonts = require 'fonts'
+local themes = require 'themes'
 
 local config = wezterm.config_builder()
 
-local themes = {
-  terminix_dark_gogh = 'Terminix Dark (Gogh)',
-  tokyo_night_storm_gogh = 'Tokyo Night Storm (Gogh)',
-  tokyonight_day = 'tokyonight_day',
-}
-
--- config.font = wezterm.font 'Hurmit Nerd Font Mono'
 config = {
-  font = wezterm.font(
-    'JetBrainsMono Nerd Font Mono',
-    { weight='Light' }
-  ),
-  font_size = 16,
-  color_scheme = themes.tokyonight_day,
-  -- macos_window_background_blur = 30,
-  -- window_background_opacity = 0.93,
+  automatically_reload_config = true,
+  window_close_confirmation = 'NeverPrompt',
+  font = wezterm.font(fonts.jetbrains.font, { weight = fonts.jetbrains.weight }),
+  font_size = 20,
+  color_scheme = themes.galaxy,
+  macos_window_background_blur = 30,
+  window_background_opacity = 0.93,
   enable_tab_bar = false,
   window_decorations = 'RESIZE',
   window_padding = {
-    top = 0,
-    left = 0,
-    right = 0,
-    bottom = 0,
+    top = 10,
+    left = 5,
+    right = 5,
+    bottom = 10,
   },
   window_frame = {
     -- Berkeley Mono for me again, though an idea could be to try a
