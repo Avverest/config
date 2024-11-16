@@ -3,7 +3,7 @@ Fonts = {
     font = 'Hurmit Nerd Font Mono',
     weight = 400,
   },
-  jetbrains = {
+  jetbrains_nerd = {
     font = 'JetBrainsMono Nerd Font Mono',
     weight = 'Light'
   }

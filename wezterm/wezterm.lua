@@ -7,18 +7,19 @@ local config = wezterm.config_builder()
 config = {
   automatically_reload_config = true,
   window_close_confirmation = 'NeverPrompt',
-  font = wezterm.font(fonts.jetbrains.font, { weight = fonts.jetbrains.weight }),
+  font = wezterm.font(fonts.jetbrains_nerd.font, { weight = fonts.jetbrains_nerd.weight }),
   font_size = 20,
   color_scheme = themes.galaxy,
-  macos_window_background_blur = 30,
-  window_background_opacity = 0.93,
+  -- macos_window_background_blur = 30,
+  -- window_background_opacity = 0.93,
   enable_tab_bar = false,
   window_decorations = 'RESIZE',
+  line_height = 1.4,
   window_padding = {
-    top = 10,
-    left = 5,
-    right = 5,
-    bottom = 10,
+    top = 0,
+    left = 0,
+    right = 0,
+    bottom = 0,
   },
   window_frame = {
     -- Berkeley Mono for me again, though an idea could be to try a

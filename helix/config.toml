@@ -1,6 +1,7 @@
 # theme = 'onelight'
 # theme = 'rose_pine_moon'
-theme = 'base16_transparent'
+# theme = 'base16_transparent'
+theme = 'gruber-darker'
 
 [editor]
 line-number = 'relative'
