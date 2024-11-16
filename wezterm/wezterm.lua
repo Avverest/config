@@ -9,7 +9,7 @@ config = {
   window_close_confirmation = 'NeverPrompt',
   font = wezterm.font(fonts.jetbrains_nerd.font, { weight = fonts.jetbrains_nerd.weight }),
   font_size = 20,
-  color_scheme = themes.galaxy,
+  color_scheme = themes.belafonte_night,
   -- macos_window_background_blur = 30,
   -- window_background_opacity = 0.93,
   enable_tab_bar = false,
@@ -21,12 +21,12 @@ config = {
     right = 0,
     bottom = 0,
   },
-  window_frame = {
-    -- Berkeley Mono for me again, though an idea could be to try a
-    -- serif font here instead of monospace for a nicer look?
-    font = wezterm.font({ family = 'Hurmit Nerd Font Mono', weight = 'Bold' }),
-    font_size = 10,
-  },
+  -- window_frame = {
+  --   -- Berkeley Mono for me again, though an idea could be to try a
+  --   -- serif font here instead of monospace for a nicer look?
+  --   font = wezterm.font({ family = 'Hurmit Nerd Font Mono', weight = 'Bold' }),
+  --   font_size = 10,
+  -- },
 }
 
 wezterm.on('update-status', function(window)
