@@ -14,19 +14,19 @@ config = {
   -- window_background_opacity = 0.93,
   enable_tab_bar = false,
   window_decorations = 'RESIZE',
-  line_height = 1.4,
+  line_height = 1.3,
   window_padding = {
     top = 0,
     left = 0,
     right = 0,
     bottom = 0,
   },
-  -- window_frame = {
-  --   -- Berkeley Mono for me again, though an idea could be to try a
-  --   -- serif font here instead of monospace for a nicer look?
-  --   font = wezterm.font({ family = 'Hurmit Nerd Font Mono', weight = 'Bold' }),
-  --   font_size = 10,
-  -- },
+  window_frame = {
+    -- Berkeley Mono for me again, though an idea could be to try a
+    -- serif font here instead of monospace for a nicer look?
+    font = wezterm.font({ family = 'Hurmit Nerd Font Mono', weight = 'Bold' }),
+    font_size = 10,
+  },
 }
 
 wezterm.on('update-status', function(window)

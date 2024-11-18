@@ -7,79 +7,110 @@
 // custom settings, run the `open default settings` command
 // from the command palette or from `Zed` application menu.
 {
-  "assistant": {
-    "default_model": {
-      "provider": "ollama",
-      "model": "llama3.1:latest"
-    },
-    "version": "2"
-  },
-  "features": {
-    "inline_completion_provider": "supermaven"
-  },
-  "theme": {
-    "light": "Xcode Classic Light",
-    "dark": "Rosé Pine"
-  },
-  "vim_mode": false,
-  "ui_font_size": 16,
-  "buffer_font_size": 16,
-  // "buffer_font_family": "Hurmit Nerd Font Mono",
-  "buffer_font_family": "JetBrainsMono Nerd Font",
-  // "ui_font_family": "Hurmit Nerd Font Mono",
-  "ui_font_family": "JetBrainsMono Nerd Font",
-  "buffer_line_height": "comfortable",
-  "buffer_font_weight": 200,
-  "preferred_line_length": 100,
-  "inlay_hints": {
-    "enabled": false,
-    "show_other_hints": false
-  },
-  "code_actions_on_format": {
-    "source.fixAll.biome": true,
-    "source.organizeImports.biome": true
-  },
-  "languages": {
-    "TypeScript": {
-      "formatter": {
-        "external": {
-          "command": "biome",
-          "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-        }
-      }
-    },
-    "TSX": {
-      "language_servers": ["typescript-language-server", "biome"],
-      "formatter": {
-        "external": {
-          "command": "biome",
-          "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-        }
-      }
-    },
-    "JavaScript": {
-      "formatter": {
-        "external": {
-          "command": "biome",
-          "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-        }
-      }
-    },
-    "JSX": {
-      "formatter": {
-        "external": {
-          "command": "biome",
-          "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-        }
-      }
-    },
-    "JSON": {
-      "formatter": {
-        "external": {
-          "command": "biome",
-          "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-        }
-      }
-    }
-  }
+	"assistant": {
+		"default_model": {
+			"provider": "ollama",
+			"model": "llama3.1:latest"
+		},
+		"version": "2"
+	},
+	"features": {
+		"inline_completion_provider": "supermaven"
+	},
+	"toolbar": {
+		"breadcrumbs": false,
+		"quick_actions": false,
+		"selections_menu": false
+	},
+	"tab_bar": {
+		"show": false
+	},
+	"theme": {
+		"light": "Gruber Darker",
+		"dark": "Rosé Pine"
+	},
+	"telemetry": {
+		"diagnostics": false,
+		"metrics": false
+	},
+	"hard_tabs": true,
+	"vim_mode": false,
+	"ui_font_size": 18,
+	"buffer_font_size": 18,
+	// "buffer_font_family": "Hurmit Nerd Font Mono",
+	"buffer_font_family": "JetBrainsMono Nerd Font",
+	// "ui_font_family": "Hurmit Nerd Font Mono",
+	"ui_font_family": "JetBrainsMono Nerd Font",
+	"buffer_line_height": { "custom": 1.8 },
+	"buffer_font_weight": 300,
+	"preferred_line_length": 100,
+	"project_panel": {
+		"scrollbar": {
+			"show": "never"
+		}
+	},
+	"unnecessary_code_fade": 0.5,
+	"inlay_hints": {
+		"enabled": false,
+		"show_other_hints": false
+	},
+	"code_actions_on_format": {
+		"source.fixAll.biome": true,
+		"source.organizeImports.biome": true
+	},
+	"lsp": {
+		"scls": {
+			"initialization_options": {
+				"max_completion_items": 6, // set max completion results len for each group: words, snippets, unicode-input
+				"feature_words": false, // enable completion by word
+				"feature_unicode_input": false, // enable "unicode input"
+				"snippets_first": true, // completions will return before snippets by default
+				"feature_snippets": true, // enable snippets
+				"feature_paths": true // enable path completion
+			}
+		}
+	},
+	"languages": {
+		"TypeScript": {
+			"formatter": {
+				"external": {
+					"command": "biome",
+					"arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
+				}
+			}
+		},
+		"TSX": {
+			"language_servers": ["!biome", "!typescript-language-server"],
+			"formatter": {
+				"external": {
+					"command": "biome",
+					"arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
+				}
+			}
+		},
+		"JavaScript": {
+			"formatter": {
+				"external": {
+					"command": "biome",
+					"arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
+				}
+			}
+		},
+		"JSX": {
+			"formatter": {
+				"external": {
+					"command": "biome",
+					"arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
+				}
+			}
+		},
+		"JSON": {
+			"formatter": {
+				"external": {
+					"command": "biome",
+					"arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
+				}
+			}
+		}
+	}
 }
