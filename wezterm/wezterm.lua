@@ -7,14 +7,14 @@ local config = wezterm.config_builder()
 config = {
   automatically_reload_config = true,
   window_close_confirmation = 'NeverPrompt',
-  font = wezterm.font(fonts.jetbrains_nerd.font, { weight = fonts.jetbrains_nerd.weight }),
-  font_size = 20,
+  font = wezterm.font(fonts.hurmit.font, { weight = fonts.hurmit.weight }),
+  font_size = 18,
   color_scheme = themes.belafonte_night,
   -- macos_window_background_blur = 30,
   -- window_background_opacity = 0.93,
   enable_tab_bar = false,
   window_decorations = 'RESIZE',
-  line_height = 1.3,
+  line_height = 1.2,
   window_padding = {
     top = 0,
     left = 0,
