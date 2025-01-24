@@ -4,6 +4,7 @@
 theme = 'gruber-darker'
 
 [editor]
+true-color = true
 line-number = 'relative'
 popup-border = 'all'
 
@@ -21,7 +22,6 @@ render = 'all'
 [editor.indent-guides]
 render = true
 skip-levels = 1
-
 
 [keys.normal]
 ret = 'command_mode'
