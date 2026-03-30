@@ -1,0 +1,8 @@
+require("plugins/mason")
+require("plugins/lualine")
+require("plugins/fzf")
+require("plugins/blink")
+require("plugins/tiny_actions")
+require("plugins/conform")
+require("plugins/ibl")
+require("plugins/autopairs")

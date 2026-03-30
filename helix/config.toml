@@ -1,15 +1,29 @@
-# theme = 'onelight'
-# theme = 'rose_pine_moon'
 # theme = 'base16_transparent'
-theme = 'gruber-darker'
+# theme = 'gruber-darker'
+# theme = 'bogster'
+# theme = 'tokyonight_day'
+# theme = 'tokyonight_moon'
+# theme = 'iroaseta'
+theme = 'amberwood'
+# theme = 'ayu_dark'
+# theme = 'everforest_light'
+# theme = 'onelight'
+# theme = 'acme'
+# theme = 'spacebones_light'
 
 [editor]
 true-color = true
 line-number = 'relative'
 popup-border = 'all'
+end-of-line-diagnostics = "hint"
+mouse = false
+
+[editor.lsp]
+display-inlay-hints = true
+auto-signature-help = true
 
 [editor.cursor-shape]
-insert = 'bar'
+insert = 'block'
 normal = 'block'
 select = 'underline'
 
@@ -22,6 +36,10 @@ render = 'all'
 [editor.indent-guides]
 render = true
 skip-levels = 1
+
+[editor.inline-diagnostics]
+cursor-line = "hint"
+other-lines = "disable"
 
 [keys.normal]
 ret = 'command_mode'

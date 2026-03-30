@@ -1,0 +1,119 @@
+{
+  "disable_ai": true,
+  "code_actions_on_format": {
+  "source.organizeImports.biome": true,
+  "source.fixAll.biome": true
+ },
+ "formatter": [],
+ "edit_predictions": null,
+  "icon_theme": "Catppuccin Latte",
+  "toolbar": {
+    "breadcrumbs": false,
+    "quick_actions": false,
+    "selections_menu": false
+  },
+  "diagnostics": {
+    "include_warnings": true,
+    "inline": {
+      "enabled": true,
+      "update_debounce_ms": 200,
+      "padding": 2,
+      "min_column": 0,
+      "max_severity": null
+    }
+  },
+  "cursor_blink": false,
+  "tabs": {
+    "git_status": true,
+    "file_icons": true,
+    "show_diagnostics": "all"
+  },
+  "tab_bar": {
+    "show_nav_history_buttons": false,
+    "show_tab_bar_buttons": false
+  },
+  "theme": {
+    "mode": "light",
+    "light": "Gruvbox Light Soft",
+    "dark": "One Dark"
+  },
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false
+  },
+  "vim_mode": true,
+  "helix_mode": false,
+  "ui_font_size": 20,
+  "ui_font_family": "Iosevka",
+  "buffer_font_size": 23,
+  "buffer_font_family": "Iosevka",
+  "buffer_line_height": { "custom": 1.7 },
+  "buffer_font_weight": 300,
+  "ui_font_weight": 400,
+  "preferred_line_length": 100,
+  "show_whitespaces": "boundary",
+  "project_panel": {
+    "dock": "right",
+    "scrollbar": {
+      "show": "never"
+    }
+  },
+  "tab_size": 2,
+  "preview_tabs": {
+    "enabled": true,
+    "enable_preview_from_file_finder": true,
+    "enable_keep_preview_on_code_navigation": true
+  },
+  "unnecessary_code_fade": 0.5,
+  "inlay_hints": {
+    "enabled": false,
+    "show_other_hints": false
+  },
+  "lsp": {
+    "eslint": {
+          "settings": {
+            "workingDirectory": {
+              "mode": "auto"
+            }
+          }
+        }
+  },
+  "languages": {
+    "TypeScript": {
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    },
+    "TSX": {
+      "prettier": { "allowed": false },
+      "language_servers": ["typescript-language-server", "eslint", "!vtsls"],
+      "format_on_save": "on",
+      "formatter": [
+              {
+                "code_actions": {
+                  "source.fixAll.eslint": true,
+                  "source.organizeImports": true
+                }
+              },
+              {
+                "external": {
+                  "command": "eslint_d",
+                  "arguments": [
+                    "--stdin",
+                    "--fix",
+                    "--fix-to-stdout",
+                    "--stdin-filename",
+                    "{buffer_path}"
+                  ]
+                }
+              }
+            ]
+    },
+    "JavaScript": { },
+    "JSON": {
+      "code_actions_on_format": {
+        "source.fixAll.eslint": true
+      }
+    }
+  }
+}

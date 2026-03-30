@@ -1,6 +1,10 @@
 [language-server]
 biome = { command = "biome", args = ["lsp-proxy"] }
 
+[language-server.tailwindcss-ls]
+command = "tailwindcss-language-server"
+args = ["--stdio"]
+
 [language-server.emmet-ls]
 args = ["--stdio"]
 command="emmet-ls"
@@ -11,41 +15,54 @@ language-servers = ["vscode-html-language-server", "emmet-ls"]
 
 [[language]]
 name = "javascript"
+# language-servers = ["typescript-language-server"]
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
 language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-auto-format = true
+indent = { tab-width = 2, unit = " "}
+auto-format = false
 
 [[language]]
 name = "typescript"
-language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
-# formatter = { command = "prettier", args = ["--parser", "typescript"] }
-auto-format = true
+language-servers = ["typescript-language-server"]
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
+formatter = { command = "prettier", args = ["--parser", "typescript"] }
+# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
+indent = { tab-width = 2, unit = " "}
+auto-format = false
 
 [[language]]
 name = "tsx"
-auto-format = true
-language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/index.tsx"] }
-# formatter = { command = "prettier", args = ["--parser", "typescript"] }
+auto-format = false
+indent = { tab-width = 2, unit = " "}
+language-servers = ["typescript-language-server", "tailwindcss-ls"]
+# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
+formatter = { command = "prettier", args = ["--parser", "typescript"] }
 
 [[language]]
 name = "jsx"
-auto-format = true
-language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
+auto-format = false
+indent = { tab-width = 2, unit = " "}
+language-servers = ["typescript-language-server"]
+formatter = { command = "prettier", args = ["--parser", "typescript"] }
+# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
+# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "" ]
 
 [[language]]
 name = "json"
-language-servers = [ { name = "vscode-json-language-server", except-features = [ "format" ] }, "biome" ]
+auto-format = false
+language-servers = ["vscode-json-language-server"]
 
 [[language]]
 name = "vue"
-auto-format = true
+auto-format = false
 formatter = { command = "prettier", args = ["--parser", "vue"] }
-language-servers = ["vuels", "typescript-language-server", "emmet-lsp", "scls"] # Emmet en snippet completion for the last 2
+language-servers = ["typescript-language-server", "emmet-lsp", "scls"] # Emmet en snippet completion for the last 2
+# language-servers = ["typescript-language-server", "emmet-lsp"] # Emmet en snippet completion for the last 2
 
 [[language-server.typescript-language-server.config.plugins]]
 name = "@vue/typescript-plugin"
-location = "/Users/averest/Library/pnpm/global/5/node_modules/@vue/typescript-plugin"
+location = "/Users/averest/.nvm/versions/node/v22.19.0/lib/node_modules/@vue/typescript-plugin"
 languages = ["vue"]
 
 [language-server.rust-analyzer.config.check]
@@ -55,3 +72,8 @@ command = "clippy"
 name = "go"
 auto-format = true
 formatter = { command = "goimports" }
+
+[[languate-server.dart]]
+command = 'dart'
+args = ['language-server', '--client-ed=helix']
+config = { dart.closingLabels = true, dart.documentation = 'summary'}
