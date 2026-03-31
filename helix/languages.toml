@@ -39,6 +39,16 @@ language-servers = ["typescript-language-server", "tailwindcss-ls"]
 # formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
 formatter = { command = "prettier", args = ["--parser", "typescript"] }
 
+
+[language.auto-pairs]
+"'" = "'"
+'(' = ')'
+'{' = '}'
+'[' = ']'
+'"' = '"'
+'`' = '`'
+'<' = '>'
+
 [[language]]
 name = "jsx"
 auto-format = false
