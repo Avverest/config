@@ -1,0 +1,256 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# General editor behaviour
+# ─────────────────────────────────────────────────────────────────────────────
+set-option global tabstop 4
+set-option global indentwidth 4
+set-option global scrolloff 3,3
+set-option -add global ui_options terminal_assistant=cat
+
+# Use ripgrep for :grep if available
+evaluate-commands %sh{ command -v rg >/dev/null 2>&1 && echo "set-option global grepcmd 'rg --column --line-number --no-heading --smart-case'" }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Appearance
+# ─────────────────────────────────────────────────────────────────────────────
+add-highlighter global/ number-lines -relative -hlcursor
+add-highlighter global/ show-matching
+add-highlighter global/ wrap -word -indent
+# Flag trailing whitespace
+add-highlighter global/ regex \h+$ 0:Error
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Filetype detection (extensions Kakoune doesn't map by default)
+# ─────────────────────────────────────────────────────────────────────────────
+hook global BufCreate .*\.tsx$        %{ set-option buffer filetype typescript }
+hook global BufCreate .*\.jsx$        %{ set-option buffer filetype javascript }
+hook global BufCreate .*\.(mjs|cjs)$  %{ set-option buffer filetype javascript }
+hook global BufCreate .*\.(mts|cts)$  %{ set-option buffer filetype typescript }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Indentation per language
+#   2-space soft tabs for web/config languages, real tabs for Go (gofmt's choice)
+# ─────────────────────────────────────────────────────────────────────────────
+hook global WinSetOption filetype=(?:javascript|typescript|json|css|scss|less|html|markdown|yaml|lua) %{
+    set-option window tabstop 2
+    set-option window indentwidth 2
+    # expandtab: convert an inserted tab into spaces based on tabstop
+    hook window -group expandtab InsertChar \t %{ execute-keys -draft -itersel h@ }
+    hook -once -always window WinSetOption filetype=.* %{ remove-hooks window expandtab }
+}
+
+hook global WinSetOption filetype=go %{
+    set-option window tabstop 4
+    set-option window indentwidth 0   ;# indent with real tabs
+    set-option window aligntab true
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Formatting on save (uses Kakoune's built-in `format` + `formatcmd`)
+#   Prettier  -> TS/JS/JSON/CSS/SCSS/LESS/HTML/Markdown/YAML
+#   gofmt     -> Go            (swap for `goimports` if you want import management)
+#   stylua    -> Lua
+# A failed formatter (e.g. a syntax error) leaves the buffer untouched.
+# ─────────────────────────────────────────────────────────────────────────────
+hook global BufSetOption filetype=(?:javascript|typescript|json|css|scss|less|html|markdown|yaml) %{
+    set-option buffer formatcmd %{prettier --stdin-filepath "%val{buffile}"}
+    hook buffer -group format-on-save BufWritePre .* format
+}
+
+hook global BufSetOption filetype=go %{
+    set-option buffer formatcmd gofmt
+    hook buffer -group format-on-save BufWritePre .* format
+}
+
+hook global BufSetOption filetype=lua %{
+    set-option buffer formatcmd %{stylua --stdin-filepath "%val{buffile}" -}
+    hook buffer -group format-on-save BufWritePre .* format
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LSP (kakoune-lsp)
+#   Wrapped so the config still loads cleanly if `kak-lsp` isn't installed.
+# ─────────────────────────────────────────────────────────────────────────────
+evaluate-commands %sh{
+    if command -v kak-lsp >/dev/null 2>&1; then
+        kak-lsp
+    else
+        echo "echo -debug 'kak-lsp not found on PATH: LSP features disabled'"
+    fi
+}
+
+try %{
+    lsp-enable
+
+    # Show LSP breadcrumbs / diagnostics counts in the modeline
+    set-option global modelinefmt "%opt{lsp_modeline} %opt{modelinefmt}"
+
+    # ── TypeScript / JavaScript: tsserver for intelligence + ESLint for linting ──
+    hook global BufSetOption filetype=(?:javascript|typescript) %{
+        set-option buffer lsp_servers %{
+            [typescript-language-server]
+            root_globs = ["package.json", "tsconfig.json", "jsconfig.json", ".git"]
+            args = ["--stdio"]
+
+            [eslint]
+            command = "vscode-eslint-language-server"
+            args = ["--stdio"]
+            root_globs = [
+                "package.json", ".git",
+                ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json", ".eslintrc.yml",
+                "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"
+            ]
+            settings_section = "eslint"
+            [eslint.settings.eslint]
+            "validate" = "on"
+            "run"      = "onType"
+            "quiet"    = false
+            [eslint.settings.eslint.codeActionOnSave]
+            "enable" = true
+            "mode"   = "all"
+        }
+        # Optional: apply ESLint autofix on save (runs before Prettier's format hook).
+        # ESLint must be installed in the project for this to do anything.
+        # hook buffer -group eslint-fix BufWritePre .* %{ lsp-code-action-sync '(?i)fix all' }
+    }
+
+    # ── Go ──
+    hook global BufSetOption filetype=go %{
+        set-option buffer lsp_servers %{
+            [gopls]
+            root_globs = ["go.mod", "go.work", ".git"]
+            settings_section = "gopls"
+            [gopls.settings.gopls]
+            "hints.assignVariableTypes" = true
+            "usePlaceholders"           = true
+            "staticcheck"               = true
+        }
+        # Optional: let gopls organize imports on save instead of plain gofmt
+        # hook buffer -group go-imports BufWritePre .* %{ lsp-code-action-sync '(?i)organize imports' }
+    }
+
+    # ── Lua ──
+    hook global BufSetOption filetype=lua %{
+        set-option buffer lsp_servers %{
+            [lua-language-server]
+            root_globs = [".luarc.json", ".luarc.jsonc", ".git"]
+        }
+    }
+
+    # ── HTML ──
+    hook global BufSetOption filetype=html %{
+        set-option buffer lsp_servers %{
+            [vscode-html-language-server]
+            root_globs = ["package.json", ".git"]
+            args = ["--stdio"]
+        }
+    }
+
+    # ── CSS / SCSS / LESS ──
+    hook global BufSetOption filetype=(?:css|scss|less) %{
+        set-option buffer lsp_servers %{
+            [vscode-css-language-server]
+            root_globs = ["package.json", ".git"]
+            args = ["--stdio"]
+        }
+    }
+
+    # ── Markdown (optional; requires `marksman`) ──
+    hook global BufSetOption filetype=markdown %{
+        set-option buffer lsp_servers %{
+            [marksman]
+            root_globs = [".marksman.toml", ".git"]
+            args = ["server"]
+        }
+    }
+
+    # ── Inlay hints (inferred types, param names). Comment out if too noisy. ──
+    lsp-inlay-hints-enable global
+
+    # ── Keybindings ──
+    map global user l ':enter-user-mode lsp<ret>'        -docstring 'LSP mode'
+    map global goto d '<esc>:lsp-definition<ret>'        -docstring 'definition'
+    map global goto r '<esc>:lsp-references<ret>'        -docstring 'references'
+    map global goto y '<esc>:lsp-type-definition<ret>'   -docstring 'type definition'
+
+    # <tab> selects the next snippet placeholder, or inserts a normal tab otherwise
+    map global insert <tab> '<a-;>:try lsp-snippets-select-next-placeholders catch %{ execute-keys -with-hooks <lt>tab> }<ret>' -docstring 'snippet placeholder / tab'
+
+    # Object-mode selections driven by the language server
+    map global object a '<a-semicolon>lsp-object<ret>'                                   -docstring 'LSP any symbol'
+    map global object f '<a-semicolon>lsp-object Function Method<ret>'                   -docstring 'LSP function/method'
+    map global object t '<a-semicolon>lsp-object Class Interface Struct<ret>'            -docstring 'LSP type'
+    map global object d '<a-semicolon>lsp-diagnostic-object error warning<ret>'          -docstring 'LSP diagnostics'
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tree-sitter (kak-tree-sitter): grammar-aware highlighting + structural selection
+# ─────────────────────────────────────────────────────────────────────────────
+evaluate-commands %sh{
+    if command -v kak-tree-sitter >/dev/null 2>&1; then
+        kak-tree-sitter -dks --init "${kak_session}"
+    else
+        echo "echo -debug 'kak-tree-sitter not found on PATH: tree-sitter highlighting disabled'"
+    fi
+}
+colorscheme night-owl        # uncomment once a tree-sitter theme is installed
+
+# kak-tree-sitter ships no mappings by default. For its semantic-selection user
+# mode and object-mode (<a-i> / <a-a>) integration, see the "Usage" section of
+# the manual: https://git.sr.ht/~hadronized/kak-tree-sitter
+
+# ─────────────────────────────────────────────────────────────────────────────
+# New-user friendliness: Helix-style "which-key" discovery
+#
+# When you enter a "mode" and pause, Kakoune pops up an info box listing the
+# available keys and what they do — the same idea as Helix's Space menu.
+# This already works out of the box for the built-in modes:
+#     g              goto menu (gg top, ge end, gl line-end, ...)
+#     v              view / scroll menu
+#     <a-i> / <a-a>  "inner / around" object menu (then w, p, b, (, {, ...)
+# Below we add a leader key so this config's own commands are discoverable too.
+# `autoinfo` controls when these popups appear (onkey = show them for modes).
+# ─────────────────────────────────────────────────────────────────────────────
+set-option global autoinfo command|onkey
+
+# Leader = comma. Press "," and wait — a menu of commands appears.
+# (Helix users often prefer Space as the leader. Space is already bound in
+#  Kakoune — it drops all but the main selection — so remap that first if you
+#  want to reuse it as your leader.)
+map global normal , ':enter-user-mode user<ret>' -docstring 'leader — show command menu'
+
+# Each -docstring below is what shows up in the which-key popup.
+map global user w ':write<ret>'           -docstring 'write (save)'
+map global user W ':write-all<ret>'       -docstring 'write all buffers'
+map global user q ':quit<ret>'            -docstring 'quit'
+map global user x ':write-quit<ret>'      -docstring 'write & quit'
+map global user f ':format<ret>'          -docstring 'format buffer'
+map global user c ':comment-line<ret>'    -docstring 'toggle line comment'
+map global user n ':buffer-next<ret>'     -docstring 'next buffer'
+map global user p ':buffer-previous<ret>' -docstring 'previous buffer'
+map global user d ':delete-buffer<ret>'   -docstring 'close buffer'
+map global user b ':buffer '              -docstring 'switch buffer (type name, <tab> completes)'
+map global user ? ':new-user-tips<ret>'   -docstring 'quick cheat sheet'
+# ,l (LSP menu) is added in the LSP section above when kak-lsp is installed.
+
+# A one-key cheat sheet of core Kakoune motions, for when the muscle memory
+# isn't there yet. Trigger with ",?".
+define-command new-user-tips -docstring 'show a quick Kakoune cheat sheet' %{
+    info -title 'Kakoune quick tips' %{Kakoune is "select first, then act":
+
+  w  b  e      next word / back / end-of-word   (these SELECT, then you act)
+  x            select the whole line (press again to add the next line)
+  %            select the whole buffer
+  /   ?        search forward / backward, then  n / N  for next / previous
+  s            select every match inside the current selection
+  d y c p      delete / yank / change / paste the selection
+  u   <c-r>    undo / redo
+
+Multiple cursors (Kakoune's superpower):
+  C            add a cursor on the line below
+  <a-s>        split the selection into one cursor per line
+  <space>      drop every selection except the main one
+
+Discover more as you go:
+  ,            this leader menu       g  goto menu       v  view menu
+  <a-i>/<a-a>  object menu            :doc  the manual   :doc keys  key list}
+}

@@ -29,7 +29,7 @@ return {
       tokyonight_day = 'tokyonight_day',
     },
     dark = {
-      tokyo_night_moon_gogh = 'Tokyo Night Moon',
+      tokyo_night_moon = 'Tokyo Night Moon',
       catppuccin_mocha = 'Catppuccin Mocha',
       challenger_deep = 'ChallengerDeep',
       galaxy = 'Galaxy',

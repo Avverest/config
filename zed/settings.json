@@ -1,115 +1,5 @@
 {
-  "agent": {
-    "default_model": {
-      "provider": "copilot_chat",
-      "model": "claude-haiku-4.5",
-      "enable_thinking": true
-    },
-    "favorite_models": [],
-    "model_parameters": []
-  },
-  "agent_servers": {
-    "cursor": {
-      "type": "registry"
-    }
-  },
-  "document_folding_ranges": "on",
-  "disable_ai": false,
-  "code_actions_on_format": {
-    "source.organizeImports.biome": true,
-    "source.fixAll.biome": true
-  },
- "formatter": [],
- "edit_predictions": null,
-  "icon_theme": {
-    "mode": "dark",
-    "light": "Catppuccin Latte",
-    "dark": "Catppuccin Latte"
-  },
-  "title_bar": {
-    "show_branch_icon": true,
-    "show_branch_name": true,
-    "show_menus": false,
-    "show_onboarding_banner": false,
-    "show_sign_in": false,
-    "show_project_items": true
-  },
-  "toolbar": {
-    "breadcrumbs": false,
-    "quick_actions": false,
-    "selections_menu": false
-  },
-  "diagnostics": {
-    "include_warnings": true,
-    "inline": {
-      "enabled": true,
-      "update_debounce_ms": 200,
-      "padding": 2,
-      "min_column": 0,
-      "max_severity": null
-    }
-  },
-  "cursor_blink": false,
-  "tabs": {
-    "git_status": true,
-    "file_icons": true,
-    "show_diagnostics": "all"
-  },
-  "tab_bar": {
-    "show_nav_history_buttons": false,
-    "show_tab_bar_buttons": false,
-    "show": true,
-  },
-  "theme": {
-    "mode": "dark",
-    "light": "Gruvbox Light Soft",
-    "dark": "One Dark"
-  },
-  "telemetry": {
-    "diagnostics": false,
-    "metrics": false
-  },
-  "vim_mode": true,
-  "helix_mode": false,
-  "ui_font_size": 18,
-  "ui_font_family": "Iosevka",
-  "buffer_font_size": 19,
-  "buffer_font_family": "Iosevka",
-  "buffer_line_height": { "custom": 1.3 },
-  "buffer_font_weight": 300,
-  "ui_font_weight": 500,
-  "preferred_line_length": 100,
-  "show_whitespaces": "boundary",
-  "scrollbar": {
-    "show": "never",
-  },
-  "project_panel": {
-    "dock": "right",
-    "scrollbar": {
-      "show": "never"
-    }
-  },
-  "tab_size": 2,
-  "preview_tabs": {
-    "enabled": true,
-    "enable_preview_from_file_finder": true,
-    "enable_keep_preview_on_code_navigation": true
-  },
-  "unnecessary_code_fade": 0.5,
-  "inlay_hints": {
-    "enabled": true,
-    "show_other_hints": true
-  },
-  "bottom_dock_layout": null,
-  "format_on_save": "off",
   "lsp": {
-    "eslint": {
-      "settings": {
-        "workingDirectory": {
-          "mode": "auto"
-        }
-      }
-    },
     "vtsls": {
       "settings": {
         "typescript": {
@@ -126,44 +16,152 @@
       "enable_lsp_tasks": true
     }
   },
-  "languages": {
-    "TypeScript": {
-      "formatter": {
-        "external": {
-          // "command": "biome",
-          // "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-          "command": "prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"]
-        }
-      }
+  "agent": {
+    "button": false,
+    "dock": "right",
+    "sidebar_side": "right",
+    "favorite_models": [],
+    "model_parameters": [],
+  },
+  "collaboration_panel": {
+    "button": false,
+  },
+  "show_edit_predictions": true,
+  "git_panel": {
+    "dock": "left",
+    "tree_view": true,
+    "file_icons": true,
+    "status_style": "label_color",
+    "starts_open": true,
+  },
+  "outline_panel": {
+    "dock": "right",
+  },
+  "document_folding_ranges": "on",
+  "icon_theme": {
+    "mode": "light",
+    "light": "Zed (Default)",
+    "dark": "Zed (Default)",
+  },
+  "title_bar": {
+    "show_user_menu": false,
+    "show_user_picture": false,
+    "show_branch_status_icon": false,
+    "show_branch_name": true,
+    "show_menus": false,
+    "show_onboarding_banner": false,
+    "show_sign_in": false,
+    "show_project_items": true,
+  },
+  "colorize_brackets": true,
+  "toolbar": {
+    "breadcrumbs": true,
+    "quick_actions": false,
+    "selections_menu": false,
+    "code_actions": false,
+    "agent_review": false,
+  },
+  "status_bar": {
+    "experimental.show": true,
+    "active_language_button": false,
+    "cursor_position_button": false,
+    "line_endings_button": false,
+  },
+  "soft_wrap": "bounded",
+  "show_wrap_guides": false,
+  "diagnostics": {
+    "include_warnings": true,
+    "inline": {
+      "enabled": true,
+      "update_debounce_ms": 300,
+      "padding": 2,
+      "min_column": 1,
+      "max_severity": "all",
     },
-    "TSX": {
-      "formatter": {
-        "external": {
-          // "command": "biome",
-          // "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-          "command": "prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"]
-        }
-      }
+  },
+  "sticky_scroll": {
+    "enabled": false,
+  },
+  "gutter": {
+    "breakpoints": false,
+    "line_numbers": true,
+    "folds": false,
+    "runnables": false,
+    "min_line_number_digits": 2,
+    "bookmarks": false,
+  },
+  "line_indicator_format": "short",
+  "relative_line_numbers": "enabled",
+  "inline_code_actions": false,
+  "cursor_blink": false,
+  "tab_bar": {
+    "show_nav_history_buttons": false,
+    "show_tab_bar_buttons": false,
+    "show": true,
+  },
+  "indent_guides": {
+    "enabled": true,
+    "line_width": 1,
+    "active_line_width": 1,
+    "coloring": "fixed",
+    "background_coloring": null,
+  },
+  "theme": {
+    "mode": "light",
+    "light": "One Light",
+    "dark": "One Dark",
+  },
+  "telemetry": {
+    "diagnostics": false,
+    "metrics": false,
+  },
+  "vim_mode": false,
+  "helix_mode": true,
+  "ui_font_family": "Iosevka Term",
+  "buffer_font_family": "Iosevka Term",
+  // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
+  "ui_font_size": 20,
+  "buffer_font_size": 21,
+  "buffer_line_height": {
+    "custom": 1.9
+  },
+  "buffer_font_weight": 400,
+  "ui_font_weight": 400,
+  "preferred_line_length": 140,
+  "show_whitespaces": "none",
+  "scrollbar": {
+    "show": "never",
+  },
+  "project_panel": {
+    "dock": "left",
+    "sticky_scroll": false,
+    "scrollbar": {
+      "show": "never",
     },
-    "JavaScript": {
-      "formatter": {
-        "external": {
-          // "command": "biome",
-          // "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-          "command": "prettier",
-          "arguments": ["--stdin-filepath", "{buffer_path}"]
-        }
-      }
-    },
-    "JSON": {
-      "formatter": {
-        "external": {
-          "command": "biome",
-          "arguments": ["check", "--write", "--stdin-file-path", "{buffer_path}"]
-        }
-      }
-    }
-  }
+  },
+  "terminal": {
+    "button": true,
+    "font_weight": 250,
+    "dock": "right"
+  },
+  "tab_size": 2,
+  "unstable.ui_density": "compact",
+  "preview_tabs": {
+    "enabled": true,
+    "enable_preview_from_file_finder": true,
+    "enable_keep_preview_on_code_navigation": true,
+  },
+  "agent_ui_font_size": 20,
+  "agent_buffer_font_size": 20,
+  "unnecessary_code_fade": 0.5,
+  "inlay_hints": {
+    "enabled": false,
+    "show_other_hints": true,
+    "show_background": true,
+    "show_type_hints": true,
+    "show_parameter_hints": true,
+    "show_value_hints": true,
+  },
+  "bottom_dock_layout": null,
+  "format_on_save": "off",
 }

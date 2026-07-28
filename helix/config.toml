@@ -1,47 +1,86 @@
-# theme = 'base16_transparent'
-# theme = 'gruber-darker'
-# theme = 'bogster'
-# theme = 'tokyonight_day'
-# theme = 'tokyonight_moon'
-# theme = 'iroaseta'
-theme = 'amberwood'
-# theme = 'ayu_dark'
-# theme = 'everforest_light'
+# LIGHT 
 # theme = 'onelight'
-# theme = 'acme'
 # theme = 'spacebones_light'
+# theme = 'github_light'
+# theme = 'cyan_light'
+theme = 'everforest_light'
+
+# DARK
+# theme = 'tokyonight'
+# theme = 'focus_nova'
+# theme = 'github_dark'
+# theme = 'amberwood'
+# theme = 'ayu_dark'
+# theme = 'autumn_night'
 
 [editor]
 true-color = true
 line-number = 'relative'
 popup-border = 'all'
 end-of-line-diagnostics = "hint"
-gutters = ["diff", "diagnostics", "line-numbers", "spacer"]
-mouse = false
+# gutters = ["diff", "diagnostics", "line-numbers", "spacer"]
+gutters = ["line-numbers", "spacer"]
+bufferline = 'never'
+editor-config = true
+cursorline = true
+continue-comments = false
+color-modes = true
+
+completion-replace = true
 
 [editor.lsp]
 display-inlay-hints = true
-auto-signature-help = true
+auto-signature-help = false
 display-progress-messages = true
 
+[editor.soft-wrap]
+enable = true
+
 [editor.cursor-shape]
-insert = 'block'
+insert = 'bar'
 normal = 'block'
 select = 'underline'
 
 [editor.file-picker]
 hidden = false
 
-[editor.whitespace]
-render = 'all'
+[editor.whitespace.render]
+space = "none"
+tab = "none"
+nbsp = "all"
+nnbsp = "all"
+newline = "all"
 
 [editor.indent-guides]
 render = true
 skip-levels = 1
+character = '│'
 
 [editor.inline-diagnostics]
 cursor-line = "hint"
-other-lines = "hint"
+other-lines = "disable"
+
+[editor.statusline]
+left = ["mode", "spinner", "file-name"]
+center = []
+right = ["diagnostics", "selections", "position", "file-encoding", "file-line-ending", "file-type"]
+separator = "│"
+mode.normal = "NORMAL"
+mode.insert = "INSERT"
+mode.select = "SELECT"
+diagnostics = ["warning", "error"]
+workspace-diagnostics = ["warning", "error"]
 
 [keys.normal]
 ret = 'command_mode'
+C-q = [":buffer-close"] 
+C-f = [
+  ":format",
+]
+C-e = [
+  ':sh rm -f /tmp/unique-file',
+  ':insert-output yazi %{buffer_name} --chooser-file=/tmp/unique-file',
+  ':insert-output echo "\x1b[?1049h\x1b[?2004h" > /dev/tty',
+  ':open %sh{cat /tmp/unique-file}',
+  ':redraw'
+]

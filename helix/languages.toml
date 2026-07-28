@@ -1,89 +1,104 @@
+# Js/Ts
 [language-server]
 biome = { command = "biome", args = ["lsp-proxy"] }
+
+[language-server.eslint]
+command = "vscode-eslint-language-server"
+args = ["--stdio"]
 
 [language-server.tailwindcss-ls]
 command = "tailwindcss-language-server"
 args = ["--stdio"]
 
-[language-server.emmet-ls]
-args = ["--stdio"]
-command="emmet-ls"
+[language-server.eslint.config]
+codeActionsOnSave = { mode = "all", "source.fixAll.eslint" = true }
+format = { enable = true }
+nodePath = ""
+quiet = false
+rulesCustomizations = []
+run = "onType"
+validate = "on"
+experimental = {}
+problems = { shortenToSingleLine = false }
 
-[[language]]
-name = "html"
-language-servers = ["vscode-html-language-server", "emmet-ls"]
+[language-server.eslint.config.codeAction]
+disableRuleComment = { enable = true, location = "separateLine" }
+showDocumentation = { enable = false }
 
 [[language]]
 name = "javascript"
-# language-servers = ["typescript-language-server"]
-# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
 language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-indent = { tab-width = 2, unit = " "}
 auto-format = false
 
 [[language]]
 name = "typescript"
-language-servers = ["typescript-language-server"]
-# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
+# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome"]
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "eslint"]
 formatter = { command = "prettier", args = ["--parser", "typescript"] }
-# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-indent = { tab-width = 2, unit = " "}
 auto-format = false
 
 [[language]]
 name = "tsx"
 auto-format = false
 indent = { tab-width = 2, unit = " "}
-language-servers = ["typescript-language-server", "tailwindcss-ls"]
-# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
-# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
+# language-servers = [{ name = "typescript-language-server", except-features = [ "format" ] }, "biome"]
+language-servers = [{ name = "typescript-language-server", except-features = [ "format" ] }, "eslint"]
 formatter = { command = "prettier", args = ["--parser", "typescript"] }
+# sT/sJ
 
-
-[language.auto-pairs]
-"'" = "'"
-'(' = ')'
-'{' = '}'
-'[' = ']'
-'"' = '"'
-'`' = '`'
-'<' = '>'
-
+# Html
 [[language]]
-name = "jsx"
-auto-format = false
-indent = { tab-width = 2, unit = " "}
-language-servers = ["typescript-language-server"]
-formatter = { command = "prettier", args = ["--parser", "typescript"] }
-# formatter = { command = "eslint_d" , args = ["--stdin", "--fix-to-stdout", "--stdin-filename", "src/main.tsx"] }
-# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "" ]
+name = "html"
+language-servers = ["vscode-html-language-server", "tailwindcss-ls"]
+# lmtH
 
+# Css
+[[language]]
+name = "css"
+language-servers = ["vscode-css-language-server", "tailwindcss-ls"]
+# ssC
+
+# Json
 [[language]]
 name = "json"
 auto-format = false
 language-servers = ["vscode-json-language-server"]
+# nosJ
 
+# Vue
 [[language]]
 name = "vue"
 auto-format = false
 formatter = { command = "prettier", args = ["--parser", "vue"] }
-language-servers = ["typescript-language-server", "emmet-lsp", "scls"] # Emmet en snippet completion for the last 2
-# language-servers = ["typescript-language-server", "emmet-lsp"] # Emmet en snippet completion for the last 2
+language-servers = ["typescript-language-server", "scls"] # Emmet en snippet completion for the last 2
 
 [[language-server.typescript-language-server.config.plugins]]
 name = "@vue/typescript-plugin"
 location = "/Users/averest/.nvm/versions/node/v22.19.0/lib/node_modules/@vue/typescript-plugin"
 languages = ["vue"]
+# euV
 
-[language-server.rust-analyzer.config.check]
-command = "clippy"
-
+# Go
 [[language]]
 name = "go"
 auto-format = true
 formatter = { command = "goimports" }
+# oG
 
+# Dart
 [[languate-server.dart]]
 command = 'dart'
 args = ['language-server', '--client-ed=helix']
 config = { dart.closingLabels = true, dart.documentation = 'summary'}
+# traD
+
+# ZK http://github.com/zk-org/zk
+[language-server.zk]
+command = "zk"
+args = ["lsp"]
+
+[[language]]
+name = "markdown"
+roots = [".zk"]
+language-servers = ["zk"]
+# KZ

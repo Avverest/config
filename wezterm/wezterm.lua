@@ -1,12 +1,14 @@
 local wezterm = require("wezterm")
 local fonts = require("fonts")
 local themes = require("themes")
+local getKeys = require("keys")
 
 local config = wezterm.config_builder()
-local font = fonts.iosevka
+local font = fonts("iosevka", "monitor")
+-- local font = fonts("lilex", "monitor")
 
 local dark = themes.gogh.dark.azu
-local light = themes.base.light.tokyonight_day
+-- local light = themes.base.light.tokyonight_day
 
 config = {
 	automatically_reload_config = true,
@@ -22,10 +24,12 @@ config = {
 	window_decorations = "RESIZE",
 	window_padding = {
 		top = 3,
-		left = 4,
-		right = 4,
-		bottom = 3,
+		left = 1,
+		right = 1,
+		bottom = 1,
 	},
+	leader = { key = ";", mods = 'CTRL', timeout_ms = 500 },
+	keys = getKeys(wezterm),
 	window_frame = {
 		-- Berkeley Mono for me again, though an idea could be to try a
 		-- serif font here instead of monospace for a nicer look?

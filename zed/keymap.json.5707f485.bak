@@ -1,0 +1,35 @@
+[
+  {
+    "context": "Editor && vim_mode == normal",
+    "bindings": {
+      "ctrl-w": "pane::CloseActiveItem",
+      "g h": "vim::StartOfLineDownward",
+      "g l": "vim::EndOfLine",
+      "space a": "editor::ToggleCodeActions",
+      "space r": "editor::Rename",
+      "x": "editor::SelectLine",
+      "g e": "vim::EndOfDocument",
+      "d": "vim::DeleteRight",
+      "space w v": "pane::SplitRight",
+      "space w q": "pane::CloseAllItems",
+      "m m": "vim::Matching",
+      "space f": "file_finder::Toggle",
+      "space w h": "workspace::ActivatePaneLeft",
+      "space w l": "workspace::ActivatePaneRight",
+      "space w j": "workspace::ActivatePaneDown",
+      "space w k": "workspace::ActivatePaneUp",
+      "space w d": "editor::ToggleSplitDiff",
+      "space w s": "pane::SplitDown",
+      ";": "buffer_search::Dismiss"
+    }
+  },
+  {
+    "context": "Editor && vim_mode == visual",
+    "bindings": {
+      "x": "editor::SelectLine",
+      "d": "vim::VisualDelete",
+      "m f": "editor::ConvertIndentationToSpaces",
+      "m m": "vim::Matching"
+    }
+  },
+]
