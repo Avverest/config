@@ -1,21 +1,4 @@
 {
-  "lsp": {
-    "vtsls": {
-      "settings": {
-        "typescript": {
-          "updateImportsOnFileMove": {
-            "enabled": "always"
-          }
-        },
-        "javascript": {
-          "updateImportsOnFileMove": {
-            "enabled": "always"
-          }
-        }
-      },
-      "enable_lsp_tasks": true
-    }
-  },
   "agent": {
     "button": false,
     "dock": "right",
@@ -39,7 +22,7 @@
   },
   "document_folding_ranges": "on",
   "icon_theme": {
-    "mode": "light",
+    "mode": "dark",
     "light": "Zed (Default)",
     "dark": "Zed (Default)",
   },
@@ -107,9 +90,9 @@
     "background_coloring": null,
   },
   "theme": {
-    "mode": "light",
+    "mode": "dark",
     "light": "One Light",
-    "dark": "One Dark",
+    "dark": "Rich Vesper",
   },
   "telemetry": {
     "diagnostics": false,
@@ -118,13 +101,11 @@
   "vim_mode": false,
   "helix_mode": true,
   "ui_font_family": "Iosevka Term",
-  "buffer_font_family": "Iosevka Term",
-  // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
+  // "buffer_font_family": "Iosevka Term",
+  "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "ui_font_size": 20,
-  "buffer_font_size": 21,
-  "buffer_line_height": {
-    "custom": 1.9
-  },
+  "buffer_font_size": 19,
+  "buffer_line_height": "standard",
   "buffer_font_weight": 400,
   "ui_font_weight": 400,
   "preferred_line_length": 140,

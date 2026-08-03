@@ -3,7 +3,7 @@
 # theme = 'spacebones_light'
 # theme = 'github_light'
 # theme = 'cyan_light'
-theme = 'everforest_light'
+# theme = 'everforest_light'
 
 # DARK
 # theme = 'tokyonight'
@@ -12,6 +12,9 @@ theme = 'everforest_light'
 # theme = 'amberwood'
 # theme = 'ayu_dark'
 # theme = 'autumn_night'
+theme = 'kanagawa'
+# theme = 'everforest_dark'
+
 
 [editor]
 true-color = true

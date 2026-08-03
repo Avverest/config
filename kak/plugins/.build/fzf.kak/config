@@ -1,0 +1,98 @@
+try %{ 
+
+    # These modules declare the options set below, so load them up front.
+    # The rarer pickers (buffers, recent, projects, vcs) stay lazy.
+    require-module fzf
+    require-module fzf-file
+    require-module fzf-grep
+
+    set-option global fzf_implementation      'fzf'
+    set-option global fzf_file_command        'fd --type f --follow --hidden --exclude .git'
+    set-option global fzf_grep_command        'rg --line-number --no-column --no-heading --color=never --smart-case '''''
+    set-option global fzf_preview             true
+    set-option global fzf_highlight_command   %sh{ command -v bat >/dev/null 2>&1 && echo 'bat --color=always --style=plain {}' || echo cat }
+    set-option global fzf_grep_preview_command %sh{ command -v bat >/dev/null 2>&1 && echo bat || echo cat }
+
+    # Shell snippet shared by the project-scoped commands below: sets $root to
+    # the VCS root of the current buffer, falling back to a marker file, then
+    # to the server's working directory.
+    declare-option -hidden str fzf_project_root_sh %{
+        dir="${kak_buffile%/*}"
+        [ -d "$dir" ] || dir="$PWD"
+        root=$(cd "$dir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
+        if [ -z "$root" ]; then
+            d="$dir"
+            while [ -n "$d" ] && [ "$d" != "/" ]; do
+                for marker in .git .hg .svn .jj .project-root package.json go.mod Cargo.toml pyproject.toml Makefile; do
+                    if [ -e "$d/$marker" ]; then root="$d"; break 2; fi
+                done
+                d="${d%/*}"
+            done
+        fi
+        [ -n "$root" ] || root="$PWD"
+    }
+
+    define-command -docstring "fzf-project-files: fuzzy-find files under the current project root" \
+    fzf-project-files %{
+        require-module fzf
+        evaluate-commands %sh{
+            eval "$kak_opt_fzf_project_root_sh"
+            if command -v fd >/dev/null 2>&1; then
+                items="fd --type f --follow --hidden --exclude .git"
+            elif command -v rg >/dev/null 2>&1; then
+                items="rg -L --hidden --files --glob '!.git/*'"
+            else
+                items="find -L . -type f -not -path '*/.git/*'"
+            fi
+            printf "%s\n" "info -title %{fzf project files} %{root: ${root}}"
+            printf "%s\n" "fzf -kak-cmd %{edit -existing} -preview -items-cmd %{cd '${root}' && ${items}} -filter %{sed 's|^|${root}/|'} -fzf-args %{--reverse}"
+        }
+    }
+
+    define-command -docstring "fzf-project-grep: fuzzy-search file contents under the current project root" \
+    fzf-project-grep %{
+        require-module fzf
+        evaluate-commands %sh{
+            eval "$kak_opt_fzf_project_root_sh"
+            if command -v rg >/dev/null 2>&1; then
+                items="rg --line-number --no-column --no-heading --color=never ''"
+            else
+                items="grep -RHn '' ."
+            fi
+            if command -v bat >/dev/null 2>&1; then
+                preview="-preview -preview-cmd %{--preview '(bat --color=always --style=plain --highlight-line {2} ${root}/{1} || cat ${root}/{1}) 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
+            else
+                preview="-preview -preview-cmd %{--preview 'cat ${root}/{1} 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
+            fi
+            printf "%s\n" "info -title %{fzf project grep} %{root: ${root}}"
+            printf "%s\n" "fzf -kak-cmd %{evaluate-commands} ${preview} -items-cmd %{cd '${root}' && ${items} 2>/dev/null} -filter %{sed -E 's|([^:]+):([^:]+):.*|edit -existing ${root}/\\1; execute-keys \\2gvc|'} -fzf-args %{--reverse --delimiter=':' -n'3..'}"
+        }
+    }
+
+    # ── Bindings ──
+    # <c-p> is the one key worth stealing from normal mode: it is only bound in
+    # insert mode (previous completion). <c-f> (page down) and <c-g> (cancel a
+    # long-running operation) are deliberately left alone; the rest of the
+    # pickers hang off the `,` leader menu below.
+    map global normal <c-p> ': fzf-project-files<ret>' -docstring 'find file in project'
+
+    # Project-scoped entries inside the fzf menu itself (,z or :fzf-mode),
+    # alongside its built-ins: f file, b buffer, g grep, v git, r recent, c cd.
+    map global fzf 'P' ': fzf-project-files<ret>' -docstring 'find file in project (VCS root)'
+    map global fzf 'G' ': fzf-project-grep<ret>'  -docstring 'grep in project (VCS root)'
+ } catch %{
+    echo -debug "Error while evaluating 'fzf.kak' configuration: %val{error}"
+
+    set-option -add current plug_conf_errors "Error while evaluating 'fzf.kak' configuration:"
+    set-option -add current plug_conf_errors %sh{ printf "\n    " }
+    set-option -add current plug_conf_errors %val{error}
+    set-option -add current plug_conf_errors %sh{ printf "\n\n" }
+
+    hook -once -group plug-conf-err global WinDisplay .* %{
+        info -style modal -title "plug.kak error" "%opt{plug_conf_errors}"
+        on-key %{
+            info -style modal
+            execute-keys -with-maps -with-hooks %val{key}
+        }
+    }
+}

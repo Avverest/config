@@ -27,6 +27,7 @@ return {
   base = {
     light = {
       tokyonight_day = 'tokyonight_day',
+      mexico = 'Mexico Light (base16)',
     },
     dark = {
       tokyo_night_moon = 'Tokyo Night Moon',

@@ -8,11 +8,13 @@ end
 local sizes = {
 	height = {
 		iosevka = variants(1.0, 1.3),
-		lilex = variants(1.3, 1.3),
+		lilex = variants(1.3, 1.1),
+		jb = variants(1.3, 1.0),
 	},
 	size = {
 		iosevka = variants(22, 22),
-		lilex = variants(21, 18),
+		lilex = variants(21, 20),
+		jb = variants(21, 19),
 	},
 }
 
@@ -29,7 +31,13 @@ return function(name, variant)
 		lilex = {
 			family = "Lilex",
 			height = h,
-			weight = 300,
+			weight = 400,
+			size = s
+		},
+		jb = {
+			family = "JetBrainsMono Nerd Font Mono",
+			height = h,
+			weight = 400,
 			size = s
 		},
 		ibm = {

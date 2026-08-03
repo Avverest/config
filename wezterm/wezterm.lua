@@ -4,11 +4,12 @@ local themes = require("themes")
 local getKeys = require("keys")
 
 local config = wezterm.config_builder()
-local font = fonts("iosevka", "monitor")
+-- local font = fonts("iosevka", "monitor")
+local font = fonts("jb", "monitor")
 -- local font = fonts("lilex", "monitor")
 
 local dark = themes.gogh.dark.azu
--- local light = themes.base.light.tokyonight_day
+local light = themes.base.light.mexico
 
 config = {
 	automatically_reload_config = true,
@@ -19,7 +20,7 @@ config = {
 	color_scheme = dark,
 
 	macos_window_background_blur = 10,
-	window_background_opacity = 0.98,
+	window_background_opacity = 1,
 	enable_tab_bar = false,
 	window_decorations = "RESIZE",
 	window_padding = {
@@ -39,12 +40,6 @@ config = {
 }
 
 wezterm.on("update-status", function(window)
-	-- Grab the utf8 character for the "powerline" left facing
-	-- solid arrow.
-
-	-- Grab the current window's configuration, and from it the
-	-- palette (this is the combination of your chosen colour scheme
-	-- including any overrides).
 	local color_scheme = window:effective_config().resolved_palette
 	local bg = color_scheme.background
 	local fg = color_scheme.foreground
