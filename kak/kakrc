@@ -220,6 +220,37 @@ plug "andreyorst/kaktree" config %{
         # sit on top of it. The highlighter is added per window, hence window/.
         try %{ remove-highlighter window/indent-guides }
     }
+    # kaktree opens in a SEPARATE Kakoune client, and it only knows two ways to
+    # create one: `tmux split-window` when $TMUX is set, or `$termcmd`. With
+    # neither (WezTerm, no tmux) its %sh block matches no branch and exits
+    # silently — `kaktree-toggle` reports success, flips its state, and no window
+    # ever appears. That is the whole bug: nothing is broken, nothing is logged.
+    #
+    # `termcmd` is kaktree's own escape hatch. It is NOT a built-in Kakoune
+    # option — nothing declares it (`%opt{termcmd}` errors with "option not
+    # found"), so kaktree's `${kak_opt_termcmd}` was always empty and the elif
+    # could never fire. Declare it here, then point it at a wrapper.
+    #
+    # Calling convention: kaktree passes the entire command as ONE argument
+    # (`$termcmd "sh -c '...'"`), so the wrapper hands that single string to a
+    # shell rather than splitting it into argv.
+    declare-option -docstring "command used to spawn a terminal for kaktree" \
+        str termcmd 'kak-ide-termcmd'
+
+    define-command -hidden -params 1.. kak-ide-termcmd %{
+        nop %sh{
+            if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
+                wezterm cli split-pane --left --percent 25 \
+                    --cwd "${kak_client_env_PWD:-$PWD}" \
+                    --pane-id "${kak_client_env_WEZTERM_PANE}" \
+                    -- sh -c "$1" >/dev/null 2>&1
+            else
+                # No WezTerm either: fall back to Kakoune's own `terminal`, which
+                # the running windowing module implements.
+                printf 'terminal sh -c %%{%s}\n' "$1" | kak -p "${kak_session}"
+            fi
+        }
+    }
     set-option global kaktree_double_click_duration '0.5'
     set-option global kaktree_indentation 1
     set-option global kaktree_dir_icon_open  '▾ 📂'
