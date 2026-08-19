@@ -569,3 +569,75 @@ Both hit while writing `test/perf.sh`, both in the same family as the
 
 The bounded-startup assertion was verified to reject the old implementation
 (1.02 GB against a 5 MB ceiling), not merely to accept the new one.
+
+---
+
+# Addendum — Phase 5 (DAP)
+
+Built after the user confirmed priority, which §9 requires. Adapters:
+`lldb-dap` 22.1.8 (stdio) for Rust, `vscode-js-debug` 1.117.0 (TCP) for
+JS/TS — the latter installed to `~/.local/share/kak-ide/js-debug`, the same
+kak-ide-owned prefix Phase 1 used for TypeScript. It is not on npm; it ships as
+a GitHub release asset (`js-debug-dap-*.tar.gz`).
+
+Verified end to end through a real Kakoune client, both adapters: set a
+breakpoint, run, stop on it, read locals, step out, step over, continue to exit.
+
+## Z. Three deadlocks, all the same shape
+
+The reader thread is the only thread that dispatches responses, so **any
+blocking request issued from it waits on itself**. Hit three times before the
+root cause was fixed once:
+
+1. `launch` — lldb-dap withholds the launch *response* until it receives
+   `configurationDone`, which is only sent from the `initialized` event. Waiting
+   for the response blocks the thread that must deliver it.
+2. `configurationDone`/`setBreakpoints` in the `initialized` handler.
+3. `stackTrace` in the `stopped` handler — the one that matters most, since
+   without it there is no stop location and no variables.
+
+Fixed properly by dispatching every event on its own worker thread, so handlers
+may block freely; `notify()` remains for the genuine fire-and-forget cases.
+Patching each site individually would have left the next one to be found later.
+
+## AA. Failures that produce no error at all
+
+Four bugs where the debugger silently did nothing rather than reporting a fault:
+
+- **Symlinked paths.** macOS `/tmp` is `/private/tmp`, and a debug binary
+  records the resolved form. Sending the unresolved path gets
+  `verified: false` — accepted, never bound, program runs to completion.
+  Every path handed to an adapter is `realpath`'d now.
+- **`threadId: 0`.** js-debug numbers threads from 0, and `b.get("threadId") or
+  self.thread_id` discards it. `thread_id` stayed `None`, so every step failed
+  its guard and was dropped without a request being sent. Falsy-zero.
+- **`startDebugging`.** js-debug is a *parent* session: it does not run the
+  program, it asks the client to open a child session per target. Refusing the
+  reverse request leaves breakpoints at `provisionalBreakpoint` forever. The
+  client now opens the child and routes control to it.
+- **Socket timeout.** The connect timeout stayed on the socket and applied to
+  every `recv`, killing the reader mid-session — a debug session is idle by
+  nature while stopped at a breakpoint.
+
+## AB. Kakoune-side traps
+
+- **`echo -markup` treats `{...}` as a face.** `%{...}` around a program name
+  makes Kakoune parse `app.js` as a colour: *"unable to parse color: 'app.js'"*.
+  Only the leading `{Information}` may be markup. Rust escaped this by luck —
+  `dapfix` contains no dot.
+- **`line-specs` is a list, not a joined string.** `"2|●|7|●"` is rejected with
+  "too many elements in tuple"; each `line|text` must be its own argument.
+- **`kak -p` has no client.** Buffer-scoped options (`filetype`) read empty and
+  `execute-keys` fails with "no input handler in context". Real use is always
+  from a client; `kak-dap-jump-to` now resolves a concrete client rather than
+  relying on `-try-client`, which silently falls back to running client-less.
+- **AUDIT finding D, again.** `%sh{}` only receives the `kak_*` variables named
+  literally in the block, so `kak_buffile`/`kak_session`/`kak_config` had to be
+  named or the adapter was chosen from an empty filetype.
+
+## AC. Breakpoints before the session
+
+Setting breakpoints and *then* starting is the normal workflow, but there is no
+daemon to receive them yet and the FIFO write was silently dropped. They are now
+held in `kak_dap_pending`, painted in the gutter immediately so the user gets
+feedback, and replayed once the adapter reports `initialized`.

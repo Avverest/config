@@ -11,8 +11,7 @@ patches Kakoune's core.
 
 ## Status
 
-**Phases 0–4 and 6 complete.** Phase 5 (DAP) is out of scope unless asked
-for. See "Roadmap" below, and `AUDIT.md` for how the plan's estimates changed
+**All phases complete (0–6).** See "Roadmap" below, and `AUDIT.md` for how the plan's estimates changed
 once the real versions on this machine were checked — several items the plan
 budgets as "build" turned out to be already solved upstream, and two shipped
 keybindings turned out to be silently unreachable.
@@ -224,6 +223,36 @@ carries the everyday commands that otherwise lived only on `,`: `w`/`W` write,
 `q` quit, `c` comment, `=` format, `n`/`p` buffer next/previous, `B` close
 buffer, `l` LSP mode, `t` tree-sitter mode, `z` fzf menu.
 
+### Debugging (plan §2.9)
+
+`bin/kak-dap` is a DAP client daemon; `rc/dap.kak` is the editor half. Unlike
+the other modules it needs a daemon — DAP is a long-lived asynchronous session
+with reverse-requests, which a run-and-exit shell script cannot hold.
+
+| Adapter | Transport | Languages |
+|---|---|---|
+| `lldb-dap` | stdio | Rust |
+| `vscode-js-debug` | TCP + child sessions | JS, TS, JSX, TSX |
+
+```
+:kak-dap-start [program]   # program guessed from filetype + project root
+:kak-dap-breakpoint        # toggle; works before a session exists
+:kak-dap-breakpoint-cond   # conditional
+:kak-dap-breakpoint-log    # log point (prints, does not stop)
+:kak-dap-continue / -next / -step-in / -step-out / -pause
+:kak-dap-variables / -stack / -frame <n>
+:kak-dap-status / -stop
+```
+
+Run `kak-ide-keymap-dap-enable` to put the debugger on `<space>d`: `b`
+breakpoint, `s` start, `c` continue, `n`/`i`/`o` step over/into/out, `v`
+variables, `k` stack, `q` stop. Breakpoints show as `●` in the gutter and the
+current stop line as `▶`.
+
+js-debug is not on npm — it ships as a GitHub release asset, installed to
+`~/.local/share/kak-ide/js-debug`. Override either adapter with `KAK_DAP_LLDB`
+or `KAK_DAP_JS_DEBUG`.
+
 ### Keybindings added by Phase 6
 
 Bound by default, on top of what `kakrc` already had:
@@ -290,5 +319,5 @@ files do not exercise root detection or import resolution). Rebuild it with
 | 2 | Multi-file rename, project-wide find/replace | **done** — rename verified across 3 files; find/replace built. See the disk-write warning above |
 | 3 | Picker core, file explorer, command palette, goto-file/import resolvers | **done** |
 | 4 | Tree-sitter textobjects/motions, git gutter + hunk nav | **done via keymap modules** — both were already implemented upstream |
-| 5 | DAP | out of scope unless requested |
+| 5 | DAP | **done** — lldb-dap (Rust) + js-debug (JS/TS), verified end to end in a real client |
 | 6 | Keybinding reconciliation | **done** — §8 table bound and asserted against `debug mappings` in `test/keymap.sh` |

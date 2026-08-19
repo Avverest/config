@@ -1,0 +1,594 @@
+#!/usr/bin/env python3
+"""kak-dap — Debug Adapter Protocol client for Kakoune (plan Section 2.9, Phase 5).
+
+    kak-dap <session> <adapter> <cwd> <program> [args...]
+
+Speaks DAP to a debug adapter and drives a Kakoune session through `kak -p`.
+Commands arrive on a FIFO (one JSON object per line); adapter events are pushed
+back into Kakoune as it produces them.
+
+Two transports, because the two adapters this targets do not agree:
+
+    lldb-dap   stdio   — a subprocess; DAP frames over its stdin/stdout
+    js-debug   TCP     — a server; started, then connected to on a port
+
+Everything above the transport is identical, so `_Chan` hides the difference and
+the session logic never branches on adapter.
+"""
+
+import json, os, socket, subprocess, sys, threading, time, shlex, signal
+
+# ─── Kakoune side ────────────────────────────────────────────────────────────
+
+SESSION = None
+
+def kak(cmds):
+    """Push commands into the Kakoune session. Never raises: the debugger must
+    survive the editor going away (quit while a session runs is normal)."""
+    if not SESSION:
+        return
+    try:
+        p = subprocess.Popen(["kak", "-p", SESSION], stdin=subprocess.PIPE)
+        p.communicate(cmds.encode(), timeout=5)
+    except Exception:
+        pass
+
+def realpath(p):
+    """Resolve symlinks before a path is shown to an adapter.
+
+    On macOS /tmp is a symlink to /private/tmp, and a debug binary records the
+    resolved form in its debug map. Sending the unresolved path makes lldb-dap
+    accept the breakpoint and report `verified: false` — no error, no warning,
+    the program simply runs to completion without ever stopping. Same hazard for
+    any project reached through a symlink."""
+    try:
+        return os.path.realpath(os.path.abspath(os.path.expanduser(p)))
+    except Exception:
+        return p
+
+
+def q(s):
+    """Quote for Kakoune's %{...} — the only escape inside it is a brace."""
+    return str(s).replace("\\", "\\\\").replace("}", "\\}").replace("{", "\\{")
+
+def kak_echo(msg, kind="Information"):
+    # Kakoune markup is "{Face}text" inside %{...}. Writing this with
+    # %-formatting is a brace-counting trap: the doubled braces needed to emit
+    # a literal one produced "%{{{Information}}...", which Kakoune parses as an
+    # empty face followed by the atom `Information` and rejects. Concatenate.
+    kak("echo -markup %{{" + kind + "}kak-dap: " + q(msg) + "}")
+
+def kak_set(opt, val):
+    kak("set-option global %s %%{%s}" % (opt, q(val)))
+
+
+# ─── DAP transport ───────────────────────────────────────────────────────────
+
+class _Chan:
+    """Framed DAP transport over either a socket or a pair of pipes."""
+
+    def __init__(self, sock=None, wfile=None, rfile=None):
+        self.sock, self.w, self.r = sock, wfile, rfile
+        self._buf = b""
+        self._lock = threading.Lock()
+
+    def send(self, obj):
+        body = json.dumps(obj).encode()
+        frame = b"Content-Length: %d\r\n\r\n" % len(body) + body
+        with self._lock:
+            if self.sock:
+                self.sock.sendall(frame)
+            else:
+                self.w.write(frame); self.w.flush()
+
+    def _read(self, n):
+        if self.sock:
+            return self.sock.recv(n)
+        return self.r.read(n)
+
+    def recv(self):
+        """Return the next message, or None at EOF."""
+        while b"\r\n\r\n" not in self._buf:
+            c = self._read(4096 if self.sock else 1)
+            if not c:
+                return None
+            self._buf += c
+        head, self._buf = self._buf.split(b"\r\n\r\n", 1)
+        length = 0
+        for line in head.decode(errors="replace").strip().split("\r\n"):
+            if line.lower().startswith("content-length:"):
+                length = int(line.split(":", 1)[1].strip())
+        while len(self._buf) < length:
+            c = self._read(length - len(self._buf))
+            if not c:
+                return None
+            self._buf += c
+        body, self._buf = self._buf[:length], self._buf[length:]
+        try:
+            return json.loads(body)
+        except Exception:
+            return {}
+
+
+# ─── Adapters ────────────────────────────────────────────────────────────────
+
+def start_adapter(adapter, program):
+    """Return (chan, proc). Chooses transport by adapter, not by language."""
+    if adapter == "lldb":
+        exe = (os.environ.get("KAK_DAP_LLDB")
+               or "/opt/homebrew/opt/llvm/bin/lldb-dap")
+        if not os.path.exists(exe):
+            die("lldb-dap not found at %s (set KAK_DAP_LLDB)" % exe)
+        p = subprocess.Popen([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL)
+        return _Chan(wfile=p.stdin, rfile=p.stdout), p, None
+
+    if adapter == "node":
+        js = os.path.expanduser(
+            os.environ.get("KAK_DAP_JS_DEBUG",
+                           "~/.local/share/kak-ide/js-debug/src/dapDebugServer.js"))
+        if not os.path.exists(js):
+            die("js-debug not found at %s (set KAK_DAP_JS_DEBUG)" % js)
+        # Port 0 lets the OS pick, but the server prints the port it chose, so
+        # read it back rather than guessing a free one and racing for it.
+        p = subprocess.Popen(["node", js, "0", "127.0.0.1"],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        port = None
+        deadline = time.time() + 15
+        while time.time() < deadline:
+            line = p.stdout.readline().decode(errors="replace")
+            if not line:
+                break
+            m = line.strip().rsplit(":", 1)
+            if "listening" in line.lower() and m[-1].strip().isdigit():
+                port = int(m[-1].strip()); break
+        if port is None:
+            die("js-debug did not report a port")
+        s = socket.create_connection(("127.0.0.1", port), timeout=15)
+        # Drop the connect timeout once connected: it would otherwise apply to
+        # every recv, and a debug session is idle by nature (stopped at a
+        # breakpoint, waiting on the user). A timeout here kills the reader
+        # thread mid-session and the debugger goes silent with no error.
+        s.settimeout(None)
+        return _Chan(sock=s), p, port
+
+    die("unknown adapter %r (want: lldb, node)" % adapter)
+
+
+def die(msg):
+    kak_echo(msg, "Error")
+    sys.stderr.write("kak-dap: %s\n" % msg)
+    sys.exit(1)
+
+
+# ─── Session ─────────────────────────────────────────────────────────────────
+
+class Session:
+    def __init__(self, adapter, cwd, program, args):
+        self.adapter, self.cwd, self.program, self.args = adapter, cwd, program, args
+        self.seq = 0
+        self.pending = {}          # seq -> (event, [response])
+        self.caps = {}
+        self.thread_id = None
+        self.frames = []
+        self.breakpoints = {}      # path -> [ {line, condition, logMessage} ]
+        self.running = False
+        self.terminated = False
+        # setBreakpoints is only meaningful once `initialize` has been answered,
+        # and only binds once the adapter has a target. Before that, breakpoints
+        # are recorded and replayed from the `initialized` event. Sending early
+        # gets `verified: false` and a program that never stops — no error.
+        self.configured = False
+        # js-debug only: the port to open child sessions on, and the child that
+        # actually runs the program once `startDebugging` arrives.
+        self.port = None
+        self.child = None
+        self.parent = None
+        self.chan, self.proc, self.port = start_adapter(adapter, program)
+        threading.Thread(target=self._reader, daemon=True).start()
+
+    # -- protocol ---------------------------------------------------------
+
+    def notify(self, command, arguments=None):
+        """Send a request without waiting for its response.
+
+        Anything called from the reader thread MUST use this. `request` blocks
+        until the reader dispatches the reply, so a blocking call made *by* the
+        reader waits on itself — the same deadlock `launch` hits, which is why
+        both the `initialized` handler and `launch` go through here."""
+        self.seq += 1
+        self.chan.send({"seq": self.seq, "type": "request",
+                        "command": command, "arguments": arguments or {}})
+
+    def request(self, command, arguments=None, timeout=20):
+        self.seq += 1
+        s = self.seq
+        ev = threading.Event()
+        slot = [None]
+        self.pending[s] = (ev, slot)
+        self.chan.send({"seq": s, "type": "request", "command": command,
+                        "arguments": arguments or {}})
+        ev.wait(timeout)
+        self.pending.pop(s, None)
+        return slot[0]
+
+    def _reader(self):
+        while True:
+            msg = self.chan.recv()
+            if msg is None:
+                if not self.terminated:
+                    self.terminated = True
+                    kak_echo("adapter disconnected")
+                    kak("kak-dap-on-terminated")
+                return
+            t = msg.get("type")
+            if t == "response":
+                got = self.pending.get(msg.get("request_seq"))
+                if got:
+                    got[1][0] = msg
+                    got[0].set()
+            elif t == "event":
+                # Handle events OFF the reader thread. A handler that calls
+                # `request` blocks until a response is dispatched, and this
+                # thread is the only dispatcher — running handlers inline
+                # deadlocks any of them that asks the adapter a question
+                # (stackTrace on `stopped` is exactly that case).
+                threading.Thread(target=self._safe_event, args=(msg,),
+                                 daemon=True).start()
+            elif t == "request":
+                cmd = msg.get("command")
+                if cmd == "startDebugging":
+                    # js-debug is a *parent* session: it does not run the program
+                    # itself, it asks the client to open a CHILD session (one per
+                    # target — the node process, each worker, each browser tab).
+                    # Refusing this leaves the program unrun and every breakpoint
+                    # stuck at `provisionalBreakpoint`, with no error anywhere.
+                    self.chan.send({"seq": 0, "type": "response",
+                                    "request_seq": msg.get("seq"),
+                                    "command": cmd, "success": True})
+                    threading.Thread(
+                        target=self._start_child,
+                        args=((msg.get("arguments") or {}).get("configuration") or {},),
+                        daemon=True).start()
+                else:
+                    # runInTerminal is refused deliberately: the adapter then
+                    # runs the target itself, which is what we want — Kakoune
+                    # has no terminal to hand it.
+                    self.chan.send({"seq": 0, "type": "response",
+                                    "request_seq": msg.get("seq"),
+                                    "command": cmd, "success": False,
+                                    "message": "unsupported"})
+
+    def _start_child(self, config):
+        """Open a child DAP session against the same js-debug server.
+
+        The child is where the program actually runs, so it owns the stops,
+        the stack and the variables. It is wired to the same handlers, and
+        `self.child` becomes the session that control commands act on."""
+        try:
+            s = socket.create_connection(("127.0.0.1", self.port), timeout=15)
+            s.settimeout(None)
+            child = Session.__new__(Session)
+            child.adapter, child.cwd = self.adapter, self.cwd
+            child.program, child.args = self.program, self.args
+            child.seq, child.pending, child.caps = 0, {}, {}
+            child.thread_id, child.frames = None, []
+            child.breakpoints = self.breakpoints
+            child.running, child.terminated, child.configured = False, False, False
+            child.port, child.child, child.parent = self.port, None, self
+            child.chan, child.proc = _Chan(sock=s), self.proc
+            self.child = child
+            threading.Thread(target=child._reader, daemon=True).start()
+            child.request("initialize", {
+                "adapterID": self.adapter, "clientID": "kak-dap",
+                "linesStartAt1": True, "columnsStartAt1": True,
+                "pathFormat": "path", "supportsRunInTerminalRequest": False,
+                "supportsStartDebuggingRequest": True, "locale": "en-us"})
+            child.notify("launch", config)
+        except Exception as e:
+            kak_echo("child session: %s" % e, "Error")
+
+    # -- events -----------------------------------------------------------
+
+    def _safe_event(self, msg):
+        try:
+            self._event(msg)
+        except Exception as e:
+            kak_echo("event %s: %s" % (msg.get("event"), e), "Error")
+
+    def _event(self, msg):
+        e = msg.get("event")
+        b = msg.get("body") or {}
+
+        if e == "initialized":
+            # Breakpoints may only be sent after `initialized`, and
+            # configurationDone must come after them. This runs on the reader
+            # thread, which is also why `launch` must not block on its response.
+            self.configured = True
+            for path in list(self.breakpoints):
+                self._send_breakpoints(path)
+            self.request("configurationDone")
+            self.publish_breakpoints()
+
+        elif e == "stopped":
+            self.running = False
+            # `or` is wrong here: js-debug numbers its threads from 0, and
+            # `0 or None` discards a perfectly valid thread id. Every step then
+            # fails the `thread_id is None` guard and is silently dropped — no
+            # request sent, no error shown.
+            tid = b.get("threadId")
+            if tid is not None:
+                self.thread_id = tid
+            self._on_stopped(b.get("reason", "stopped"))
+
+        elif e == "continued":
+            self.running = True
+            kak_set("kak_dap_status", "running")
+            kak("kak-dap-clear-stop-marker")
+
+        elif e == "terminated" or e == "exited":
+            self.terminated = True
+            code = b.get("exitCode")
+            kak_set("kak_dap_status", "terminated")
+            kak_echo("terminated" + ("" if code is None else " (exit %s)" % code))
+            kak("kak-dap-on-terminated")
+
+        elif e == "output":
+            out = (b.get("output") or "").rstrip("\n")
+            if out and b.get("category") in (None, "stdout", "stderr", "console"):
+                for line in out.split("\n")[-20:]:
+                    kak("echo -debug %%{kak-dap> %s}" % q(line))
+
+    def _on_stopped(self, reason):
+        st = self.request("stackTrace",
+                          {"threadId": self.thread_id, "startFrame": 0, "levels": 40})
+        self.frames = (((st or {}).get("body") or {}).get("stackFrames") or [])
+        kak_set("kak_dap_status", "stopped (%s)" % reason)
+        if not self.frames:
+            kak_echo("stopped: %s (no source frame)" % reason)
+            return
+        top = self.frames[0]
+        src = (top.get("source") or {}).get("path")
+        line = top.get("line") or 1
+        if src and os.path.exists(src):
+            kak("kak-dap-jump-to %%{%s} %d" % (q(src), line))
+        kak_echo("stopped: %s — %s:%s" % (reason, os.path.basename(src or "?"), line))
+
+    # -- breakpoints ------------------------------------------------------
+
+    def _send_breakpoints(self, path, blocking=True):
+        if not self.configured:
+            return None          # replayed from the `initialized` event
+        bps = self.breakpoints.get(path, [])
+        real = realpath(path)
+        arg = []
+        for bp in bps:
+            one = {"line": bp["line"]}
+            if bp.get("condition"):
+                one["condition"] = bp["condition"]
+            if bp.get("logMessage"):
+                one["logMessage"] = bp["logMessage"]
+            arg.append(one)
+        payload = {"source": {"path": real, "name": os.path.basename(real)},
+                   "breakpoints": arg, "lines": [b["line"] for b in bps]}
+        if not blocking:
+            return self.notify("setBreakpoints", payload)
+        return self.request("setBreakpoints", payload)
+
+    def toggle_breakpoint(self, path, line, condition=None, log=None):
+        path = realpath(path)
+        bps = self.breakpoints.setdefault(path, [])
+        for i, bp in enumerate(bps):
+            if bp["line"] == line:
+                if condition or log:          # re-arming an existing one
+                    bp["condition"], bp["logMessage"] = condition, log
+                else:
+                    bps.pop(i)
+                break
+        else:
+            bps.append({"line": line, "condition": condition, "logMessage": log})
+        if not bps:
+            self.breakpoints.pop(path, None)
+        self._send_breakpoints(path)
+        self.publish_breakpoints()
+
+    def publish_breakpoints(self):
+        """Push the gutter flags for every file that has breakpoints.
+
+        line-specs is a LIST of "<line>|<text>" words, not one "|"-joined
+        string — Kakoune rejects the latter with "too many elements in tuple".
+        Each spec is passed as its own quoted argument."""
+        for path, bps in self.breakpoints.items():
+            specs = " ".join("%%{%d|●}" % b["line"] for b in bps)
+            kak("kak-dap-set-breakpoint-flags %%{%s} %s" % (q(path), specs))
+        kak("kak-dap-set-breakpoint-count %d"
+            % sum(len(v) for v in self.breakpoints.values()))
+
+    # -- lifecycle --------------------------------------------------------
+
+    def launch(self):
+        init = self.request("initialize", {
+            "adapterID": self.adapter, "clientID": "kak-dap",
+            "linesStartAt1": True, "columnsStartAt1": True,
+            "pathFormat": "path", "supportsRunInTerminalRequest": False,
+            "locale": "en-us",
+        })
+        if not init or not init.get("success"):
+            die("initialize failed")
+        self.caps = init.get("body") or {}
+
+        if self.adapter == "lldb":
+            args = {"program": self.program, "args": self.args, "cwd": self.cwd,
+                    "stopOnEntry": False}
+        else:
+            args = {"type": "pwa-node", "request": "launch", "name": "kak-dap",
+                    "program": self.program, "args": self.args, "cwd": self.cwd,
+                    "console": "internalConsole", "stopOnEntry": False,
+                    "sourceMaps": True, "skipFiles": ["<node_internals>/**"]}
+
+        # lldb-dap withholds the launch RESPONSE until it has seen
+        # configurationDone, which this client only sends from the `initialized`
+        # event — i.e. from the reader thread. Blocking here on the response
+        # would therefore deadlock: the reply cannot arrive until a message this
+        # call is preventing us from processing. Fire and let the event flow
+        # complete it; failures surface via the `terminated` event.
+        self.notify("launch", args)
+        self.running = True
+        kak_set("kak_dap_status", "running")
+        kak_echo("launched %s" % os.path.basename(self.program))
+
+    # -- control ----------------------------------------------------------
+
+    def active(self):
+        """The session that owns execution: the child for js-debug, else self."""
+        return self.child if self.child is not None else self
+
+    def _step(self, command):
+        if self.child is not None:
+            return self.child._step(command)
+        if self.thread_id is None:
+            kak_echo("not stopped", "Error"); return
+        kak("kak-dap-clear-stop-marker")
+        self.request(command, {"threadId": self.thread_id})
+
+    def cont(self):     self._step("continue")
+    def step_over(self): self._step("next")
+    def step_in(self):  self._step("stepIn")
+    def step_out(self): self._step("stepOut")
+
+    def pause(self):
+        if self.child is not None:
+            return self.child.pause()
+        if self.thread_id is not None:
+            self.request("pause", {"threadId": self.thread_id})
+
+    def terminate(self):
+        if self.child is not None:
+            try:
+                self.child.request("disconnect", {"terminateDebuggee": True}, timeout=5)
+            except Exception:
+                pass
+            self.child = None
+        try:
+            self.request("disconnect", {"terminateDebuggee": True}, timeout=5)
+        except Exception:
+            pass
+        self.terminated = True
+        try:
+            self.proc.terminate()
+        except Exception:
+            pass
+        kak_set("kak_dap_status", "off")
+        kak("kak-dap-on-terminated")
+
+    # -- inspection -------------------------------------------------------
+
+    def variables(self):
+        if self.child is not None:
+            return self.child.variables()
+        if not self.frames:
+            kak_echo("not stopped", "Error"); return
+        fid = self.frames[0]["id"]
+        sc = self.request("scopes", {"frameId": fid})
+        scopes = (((sc or {}).get("body") or {}).get("scopes") or [])
+        out = []
+        for scope in scopes[:3]:
+            if scope.get("expensive"):
+                continue
+            out.append("── %s" % scope.get("name", "scope"))
+            v = self.request("variables",
+                             {"variablesReference": scope.get("variablesReference")})
+            for var in (((v or {}).get("body") or {}).get("variables") or [])[:40]:
+                val = (var.get("value") or "").replace("\n", " ")
+                if len(val) > 80:
+                    val = val[:77] + "..."
+                out.append("  %-22s %s" % (var.get("name", "?"), val))
+        kak("info -title %%{kak-dap variables} %%{%s}"
+            % q("\n".join(out) or "(none)"))
+
+    def stack(self):
+        if self.child is not None:
+            return self.child.stack()
+        if not self.frames:
+            kak_echo("not stopped", "Error"); return
+        out = []
+        for i, f in enumerate(self.frames[:30]):
+            src = (f.get("source") or {}).get("name") or "?"
+            out.append("%2d  %-30s %s:%s" % (i, (f.get("name") or "?")[:30],
+                                             src, f.get("line")))
+        kak("info -title %%{kak-dap stack} %%{%s}" % q("\n".join(out)))
+
+    def frame(self, n):
+        """Select a stack frame and jump to it — Helix's frame switching."""
+        if self.child is not None:
+            return self.child.frame(n)
+        if n < 0 or n >= len(self.frames):
+            kak_echo("no frame %d" % n, "Error"); return
+        f = self.frames[n]
+        src = (f.get("source") or {}).get("path")
+        if src and os.path.exists(src):
+            kak("kak-dap-jump-to %%{%s} %d" % (q(src), f.get("line") or 1))
+        # Keep the selected frame first so `variables` follows the selection.
+        self.frames = self.frames[n:] + self.frames[:n]
+
+
+# ─── Command loop ────────────────────────────────────────────────────────────
+
+def main():
+    global SESSION
+    if len(sys.argv) < 5:
+        sys.stderr.write("usage: kak-dap <session> <fifo> <adapter> <cwd> <program> [args...]\n")
+        return 2
+    SESSION, fifo, adapter, cwd, program = sys.argv[1:6]
+    args = sys.argv[6:]
+
+    program = realpath(program)
+    cwd = realpath(cwd)
+    if not os.path.exists(program):
+        die("no such program: %s" % program)
+
+    sess = Session(adapter, cwd, program, args)
+    sess.launch()
+
+    # One JSON object per line. Reopening in a loop: a FIFO read returns EOF
+    # each time the last writer closes, which is after every single `echo > fifo`.
+    while not sess.terminated:
+        try:
+            with open(fifo, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        cmd = json.loads(line)
+                    except Exception:
+                        continue
+                    op = cmd.get("op")
+                    try:
+                        if   op == "continue":   sess.cont()
+                        elif op == "next":       sess.step_over()
+                        elif op == "stepIn":     sess.step_in()
+                        elif op == "stepOut":    sess.step_out()
+                        elif op == "pause":      sess.pause()
+                        elif op == "variables":  sess.variables()
+                        elif op == "stack":      sess.stack()
+                        elif op == "frame":      sess.frame(int(cmd.get("n", 0)))
+                        elif op == "breakpoint":
+                            sess.toggle_breakpoint(cmd["path"], int(cmd["line"]),
+                                                   cmd.get("condition"), cmd.get("log"))
+                        elif op == "quit":
+                            sess.terminate(); return 0
+                    except Exception as e:
+                        kak_echo("%s: %s" % (op, e), "Error")
+        except FileNotFoundError:
+            break
+        except Exception:
+            time.sleep(0.05)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(130)
