@@ -519,3 +519,53 @@ unescapes only the command half, leaving the key column as Kakoune printed it.
 
 Related: `<a-space>`'s command *is* the literal key `<space>`, so it is asserted
 on its docstring rather than its command text.
+
+---
+
+# Addendum — §10 performance sanity (the last unverified exit criterion)
+
+## X. The grep picker streamed the whole tree into fzf
+
+Plan §10 asks that global search on a repo of realistic size (">= this Helix
+repo's own scale, ~5k+ files") return "well under a second". Nothing tested it:
+this config's own tree is ~100 files and can never exercise the bar. Measured
+against the cargo registry checkout (25,817 files, 5x the plan's bar):
+
+| | startup output | time |
+|---|---|---|
+| before | 9,470,448 lines / **1.02 GB** | **1.50 s** |
+| after  | 2,000 lines / 199 KB | **0.024 s** |
+
+The cause was the idiom `rg ''` — an empty pattern matching every line of every
+file, handing the entire tree to fzf and letting fzf do all the matching. That
+is fine at 100 files and pathological at 25k, and it is the shape fzf.kak's
+examples use.
+
+Fixed by inverting which tool searches: `--disabled` turns fzf's own matching
+off and `--bind change:reload:` re-runs `rg` per keystroke instead, so only
+matches are ever transferred. Measured per-query cost on the same tree is
+0.03-0.13 s. `--max-count=50` caps per-file hits so a single generated or
+minified file cannot flood the list, and `head -n 2000` bounds the transfer;
+`rg` exits on SIGPIPE, so the cap costs no extra scanning.
+
+Output shape is unchanged (`path:line:text`), so the existing `-filter` and
+preview commands apply verbatim — verified by capturing the actual generated
+shell command rather than reasoning about the quoting.
+
+## Y. Two ways this measurement could have lied
+
+Both hit while writing `test/perf.sh`, both in the same family as the
+`timeout(1)` and `write`-no-op notes above:
+
+- **zsh does not word-split unquoted variables.** `$RG -- 'pat'` with
+  `RG="rg --flags..."` returns 0 results in the interactive zsh used to explore,
+  and 432 under the `/bin/sh` that actually runs the generated script. An
+  ad-hoc shell check can therefore report a failure the real code path does not
+  have. The config embeds the command literally, so it was never affected.
+- **A perf test that silently skips is worse than none.** `perf.sh` exits
+  `SKIP` — never `PASS` — when no >=5000-file repo is available, so a green run
+  can not come from an assertion that never executed. Point it elsewhere with
+  `KAK_IDE_PERF_REPO`.
+
+The bounded-startup assertion was verified to reject the old implementation
+(1.02 GB against a 5 MB ceiling), not merely to accept the new one.

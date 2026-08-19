@@ -310,10 +310,23 @@ plug "andreyorst/fzf.kak" config %{
         require-module fzf
         evaluate-commands %sh{
             eval "$kak_opt_fzf_project_root_sh"
+            # Stream only what matches, not the whole tree. The obvious form —
+            # an empty rg pattern, letting fzf fuzzy-match every line — emits
+            # 9.5M lines / 1.0GB on a 25k-file checkout and takes 1.6s before
+            # fzf starts, blowing plan §10's "well under a second" bar. With
+            # --disabled + reload, fzf stops matching and each keystroke re-runs
+            # rg instead: 0.03-0.5s per query on the same tree.
+            #
+            # --max-count caps per-file hits so one generated/minified file
+            # cannot flood the list. The output shape is unchanged, so -filter
+            # and the preview command below still apply verbatim.
             if command -v rg >/dev/null 2>&1; then
-                items="rg --line-number --no-column --no-heading --color=never ''"
+                rg_cmd="rg --line-number --no-column --no-heading --color=never --smart-case --max-count=50"
+                items="${rg_cmd} -- '' | head -n 2000"
+                reload="--disabled --bind 'start:reload:${rg_cmd} -- {q} 2>/dev/null | head -n 2000' --bind 'change:reload:sleep 0.05; ${rg_cmd} -- {q} 2>/dev/null | head -n 2000'"
             else
-                items="grep -RHn '' ."
+                items="grep -RHn '' . | head -n 2000"
+                reload=""
             fi
             if command -v bat >/dev/null 2>&1; then
                 preview="-preview -preview-cmd %{--preview '(bat --color=always --style=plain --highlight-line {2} ${root}/{1} || cat ${root}/{1}) 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
@@ -321,7 +334,7 @@ plug "andreyorst/fzf.kak" config %{
                 preview="-preview -preview-cmd %{--preview 'cat ${root}/{1} 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
             fi
             printf "%s\n" "info -title %{fzf project grep} %{root: ${root}}"
-            printf "%s\n" "fzf -kak-cmd %{evaluate-commands} ${preview} -items-cmd %{cd '${root}' && ${items} 2>/dev/null} -filter %{sed -E 's|([^:]+):([^:]+):.*|edit -existing ${root}/\\1; execute-keys \\2gvc|'} -fzf-args %{--reverse --delimiter=':' -n'3..'}"
+            printf "%s\n" "fzf -kak-cmd %{evaluate-commands} ${preview} -items-cmd %{cd '${root}' && ${items} 2>/dev/null} -filter %{sed -E 's|([^:]+):([^:]+):.*|edit -existing ${root}/\\1; execute-keys \\2gvc|'} -fzf-args %{--reverse --delimiter=':' -n'3..' ${reload}}"
         }
     }
 

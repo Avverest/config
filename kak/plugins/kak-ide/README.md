@@ -247,8 +247,14 @@ plugins/kak-ide/test/smoke.sh --lsp    # also starts servers, ~90s
 plugins/kak-ide/test/goto.sh           # import resolution, 18 cases, ~1s
 plugins/kak-ide/test/refactor.sh       # find/replace, ~5s
 plugins/kak-ide/test/refactor.sh --rename  # also the LSP multi-file rename
-plugins/kak-ide/test/keymap.sh         # 26 binding assertions, ~2s
+plugins/kak-ide/test/keymap.sh         # 28 binding assertions, ~2s
+plugins/kak-ide/test/perf.sh           # plan §10 perf sanity, ~1s
 ```
+
+`perf.sh` needs a repo of >=5000 files to mean anything (plan §10) — this
+config is ~100. It uses the cargo registry checkout when present and reports
+**SKIP**, never PASS, when no such repo is available, so a green run cannot come
+from an assertion that never ran. Override with `KAK_IDE_PERF_REPO`.
 
 `keymap.sh` asserts against `debug mappings` — what Kakoune actually resolved
 after every file loaded — not against what the source asks for. Kakoune
