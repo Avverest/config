@@ -426,7 +426,7 @@ map global user = ':format<ret>'          -docstring 'format buffer'
 map global user c ':comment-line<ret>'    -docstring 'toggle line comment'
 map global user n ':buffer-next<ret>'     -docstring 'next buffer'
 map global user p ':buffer-previous<ret>' -docstring 'previous buffer'
-map global user d ':delete-buffer<ret>'   -docstring 'close buffer'
+map global user d ':kak-ide-close-buffer<ret>' -docstring 'close buffer (asks if modified)'
 map global user B ':buffer '              -docstring 'switch buffer (type name, <tab> completes)'
 map global user ? ':new-user-tips<ret>'   -docstring 'quick cheat sheet'
 

@@ -67,18 +67,43 @@ map global goto f ': kak-ide-goto-file<ret>'                -docstring 'file / i
 # modified" — and offers nothing further, so the buffer appears unclosable
 # unless you already know to type `:delete-buffer!`. This asks instead.
 
-define-command kak-ide-close-buffer -docstring %{
-    kak-ide-close-buffer: close this buffer, asking what to do if it is modified
+define-command kak-ide-close-buffer -params 0..1 -docstring %{
+    kak-ide-close-buffer [buffer]: close a buffer, asking if it has unsaved changes
+
+    Without an argument, closes the current buffer.
 } %{
+    evaluate-commands %sh{
+        # `delete-buffer` with no argument closes the current buffer; passing an
+        # empty string is an error, so only forward one when given.
+        if [ -n "$1" ]; then printf 'kak-ide-close-buffer-impl %%{%s}\n' "$1"
+        else                 printf 'kak-ide-close-buffer-impl %%val{bufname}\n'
+        fi
+    }
+}
+
+# The buffer being closed, held across the prompt. `%arg{1}` is NOT reachable
+# from inside the prompt's own %sh block — command arguments are not exported as
+# kak_arg_* there, so reading one yields an empty string and the wrong buffer
+# (or none) gets deleted. An option survives the callback; a shell variable does
+# not.
+declare-option -hidden str kak_ide_closing
+
+define-command -hidden -params 1 kak-ide-close-buffer-impl %{
     try %{
-        delete-buffer
+        delete-buffer %arg{1}
     } catch %{
-        # `delete-buffer` fails only when the buffer has unsaved changes.
-        prompt -on-abort %{ echo -markup "{Information}kept" }                "buffer modified — (w)rite and close, (d)iscard, (c)ancel: " %{
+        # `delete-buffer` fails only when the buffer has unsaved changes. Left
+        # alone it fails silently through fzf, whose window has already closed
+        # by the time the error is raised — the buffer simply appears unclosable.
+        set-option global kak_ide_closing %arg{1}
+        prompt -on-abort %{ echo -markup "{Information}kept" } \
+               "%arg{1} modified — (w)rite and close, (d)iscard, (c)ancel: " %{
             evaluate-commands %sh{
+                : "$kak_opt_kak_ide_closing" "$kak_text"
+                b="$kak_opt_kak_ide_closing"
                 case "$kak_text" in
-                    w*) printf 'write\ndelete-buffer\necho -markup %%{{Information}written and closed}\n' ;;
-                    d*) printf 'delete-buffer!\necho -markup %%{{Information}discarded}\n' ;;
+                    w*) printf 'evaluate-commands -buffer %%{%s} %%{ write }\ndelete-buffer %%{%s}\necho -markup %%{{Information}written and closed}\n' "$b" "$b" ;;
+                    d*) printf 'delete-buffer! %%{%s}\necho -markup %%{{Information}discarded}\n' "$b" ;;
                     *)  printf 'echo -markup %%{{Information}kept}\n' ;;
                 esac
             }
@@ -207,6 +232,26 @@ map global kak-ide '=' ': format<ret>'         -docstring 'format buffer'
 map global kak-ide n ': buffer-next<ret>'      -docstring 'next buffer'
 map global kak-ide p ': buffer-previous<ret>'  -docstring 'previous buffer'
 map global kak-ide B ': kak-ide-close-buffer<ret>' -docstring 'close buffer (asks if modified)'
+
+# fzf.kak's own delete-buffer picker calls plain `delete-buffer`, which fails on
+# a modified buffer — and the fzf window has already closed by then, so the
+# error is never seen and the buffer just appears not to close. Point it at the
+# version that asks. `-override` because fzf.kak defines it in a module that is
+# required lazily; this runs after that.
+hook global ModuleLoaded fzf-buffer %{
+    define-command -override -hidden fzf-delete-buffer %{ evaluate-commands %sh{
+        buffers=""
+        eval "set -- ${kak_quoted_buflist:?}"
+        while [ $# -gt 0 ]; do
+            buffers="$1
+$buffers"
+            shift
+        done
+        printf "%s\n" "info -title 'fzf delete-buffer' 'Delete buffer.
+<ret>: delete selected buffer (asks if modified).'"
+        printf "%s\n" "fzf -kak-cmd %{kak-ide-close-buffer} -multiple-cmd %{kak-ide-close-buffer} -items-cmd %{printf \"%s\n\" \"$buffers\"} -fzf-args %{-m --expect ${kak_opt_fzf_window_map:-ctrl-w} ${additional_flags:-}}"
+    }}
+}
 map global kak-ide l ': enter-user-mode lsp<ret>'         -docstring 'LSP mode'
 map global kak-ide t ': enter-user-mode tree-sitter<ret>' -docstring 'tree-sitter mode'
 map global kak-ide z ': fzf-mode<ret>'         -docstring 'fzf menu (all pickers)'
