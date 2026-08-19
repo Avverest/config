@@ -251,6 +251,62 @@ plug "andreyorst/kaktree" config %{
             fi
         }
     }
+    # kaktree--refresh does `evaluate-commands -client %opt{kaktreeclient}` with
+    # no guard, in two places: once directly, and once from a BACKGROUND subshell
+    # that fires after the tree has been piped through a fifo. Either can run when
+    # the client is not there — during the window between toggling kaktree on and
+    # the spawned client registering its name, or after the pane is closed — and
+    # the result is a bare "no such client: 'kaktreeclient'".
+    #
+    # Wrap both in `try`. A refresh with no tree window is a no-op, not an error:
+    # kaktree--display recreates the buffer and refreshes again when it opens.
+    # Guarding by wrapping kaktree--refresh does NOT work: `alias` resolves at
+    # call time, not definition time, so after `define-command -override` the
+    # alias points back at the wrapper and the first refresh recurses until
+    # Kakoune hits "maximum nested command depth".
+    #
+    # Guard the entry points instead. `kaktree-toggle`/`-focus` are what a
+    # keybinding calls, and a stale `kaktree__active` (left true when a previous
+    # pane was closed, or when the spawn silently failed) is what sends kaktree
+    # off to talk to a client that is not there.
+    # Reimplemented rather than wrapped, deliberately: `alias` resolves at CALL
+    # time, so `alias x y` + `define-command -override y` makes y recurse into
+    # itself until Kakoune hits "maximum nested command depth". The body below
+    # is kaktree's own, with the client existence checked before it is used.
+    #
+    # The bug: kaktree tracks whether the tree is up in `kaktree__onscreen`, but
+    # closing the pane by hand (or a spawn that never happened) leaves that true
+    # with no client. The next toggle then runs
+    # `evaluate-commands -client kaktreeclient quit` and fails with
+    # "no such client: 'kaktreeclient'", and the state stays stuck.
+    define-command -override -docstring "kaktree-toggle: Toggle kaktree window on and off" \
+    kaktree-toggle %{ evaluate-commands %sh{
+        : "$kak_opt_kaktreeclient" "$kak_quoted_client_list" \
+          "$kak_opt_kaktree__active" "$kak_opt_kaktree__onscreen"
+        alive=no
+        eval "set -- $kak_quoted_client_list"
+        for c; do [ "$c" = "$kak_opt_kaktreeclient" ] && alive=yes; done
+
+        if [ "$kak_opt_kaktree__active" = true ]; then
+            if [ "$kak_opt_kaktree__onscreen" = true ] && [ "$alive" = yes ]; then
+                printf "%s\n" "remove-hooks global kaktree-exit
+                               evaluate-commands -client %opt{kaktreeclient} quit
+                               set-option global kaktree__onscreen false"
+            else
+                # Either genuinely off-screen, or the client vanished behind our
+                # back — same recovery: forget the stale state and reopen.
+                printf "%s\n" "set-option global kaktree__onscreen false
+                               hook -group kaktree-exit global ClientClose ${kak_opt_kaktreeclient} %{ kaktree-disable }
+                               evaluate-commands kaktree--display
+                               set-option global kaktree__onscreen true"
+            fi
+        else
+            printf "%s\n" "evaluate-commands kaktree-enable
+                           evaluate-commands kaktree--display
+                           set-option global kaktree__onscreen true"
+        fi
+    }}
+
     set-option global kaktree_double_click_duration '0.5'
     set-option global kaktree_indentation 1
     set-option global kaktree_dir_icon_open  '▾ 📂'
