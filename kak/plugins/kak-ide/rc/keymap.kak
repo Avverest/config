@@ -44,10 +44,47 @@ map global user '%' ': kak-ide-replace<ret>'                -docstring 'project-
 map global goto D ': lsp-declaration<ret>'    -docstring 'declaration'
 map global goto i ': lsp-implementation<ret>' -docstring 'implementation'
 
+# Buffer navigation (kakoune_bugs.md item 3 asks for Helix's gn/gp).
+#
+# `gn`/`gp` are NOT reachable. Kakoune's goto mode is implemented in C++ and
+# only dispatches keys it already knows: `map global goto n` is accepted and
+# even appears in `debug mappings`, but pressing `gn` reports "key not mapped".
+# Reproduced in a bare `kak -n` with no config, so this is upstream behaviour,
+# not a conflict here. `D`/`i` above work precisely because they ARE goto keys.
+#
+# So buffer navigation goes on the bracket-nav modes this bundle already owns —
+# `]b`/`[b`, alongside `]c`/`]d`/`]f` — plus `<space>n`/`<space>p` on the
+# leader. `ga` (Kakoune's own last-buffer) still does the Helix `ga` job.
+
 # `gf` — Kakoune's native goto-file only opens a literal selected path. This
 # replaces it with import-aware resolution and keeps the native behaviour as the
 # last fallback, so it is strictly a superset (§8 rule 4 conflict does not apply).
 map global goto f ': kak-ide-goto-file<ret>'                -docstring 'file / import under cursor'
+
+# ─── Closing buffers (kakoune_bugs.md item 1) ────────────────────────────────
+#
+# `delete-buffer` refuses a buffer with unsaved changes — "buffer 'x' is
+# modified" — and offers nothing further, so the buffer appears unclosable
+# unless you already know to type `:delete-buffer!`. This asks instead.
+
+define-command kak-ide-close-buffer -docstring %{
+    kak-ide-close-buffer: close this buffer, asking what to do if it is modified
+} %{
+    try %{
+        delete-buffer
+    } catch %{
+        # `delete-buffer` fails only when the buffer has unsaved changes.
+        prompt -on-abort %{ echo -markup "{Information}kept" }                "buffer modified — (w)rite and close, (d)iscard, (c)ancel: " %{
+            evaluate-commands %sh{
+                case "$kak_text" in
+                    w*) printf 'write\ndelete-buffer\necho -markup %%{{Information}written and closed}\n' ;;
+                    d*) printf 'delete-buffer!\necho -markup %%{{Information}discarded}\n' ;;
+                    *)  printf 'echo -markup %%{{Information}kept}\n' ;;
+                esac
+            }
+        }
+    }
+}
 
 # ─── Structural editing: reach what kak-tree-sitter already installs ────────
 #
@@ -115,6 +152,8 @@ define-command kak-ide-keymap-git-enable -docstring %{
     map global kak-ide-prev d ': lsp-find-error --previous<ret>' -docstring 'previous diagnostic'
     map global kak-ide-next f ': lsp-next-function<ret>'         -docstring 'next function'
     map global kak-ide-prev f ': lsp-previous-function<ret>'     -docstring 'previous function'
+    map global kak-ide-next b ': buffer-next<ret>'               -docstring 'next buffer'
+    map global kak-ide-prev b ': buffer-previous<ret>'           -docstring 'previous buffer'
 
     map global user G ': git show-diff<ret>' -docstring 'refresh git gutter'
 
@@ -167,7 +206,7 @@ map global kak-ide c ': comment-line<ret>'     -docstring 'toggle line comment'
 map global kak-ide '=' ': format<ret>'         -docstring 'format buffer'
 map global kak-ide n ': buffer-next<ret>'      -docstring 'next buffer'
 map global kak-ide p ': buffer-previous<ret>'  -docstring 'previous buffer'
-map global kak-ide B ': delete-buffer<ret>'    -docstring 'close buffer'
+map global kak-ide B ': kak-ide-close-buffer<ret>' -docstring 'close buffer (asks if modified)'
 map global kak-ide l ': enter-user-mode lsp<ret>'         -docstring 'LSP mode'
 map global kak-ide t ': enter-user-mode tree-sitter<ret>' -docstring 'tree-sitter mode'
 map global kak-ide z ': fzf-mode<ret>'         -docstring 'fzf menu (all pickers)'

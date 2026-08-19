@@ -641,3 +641,47 @@ Setting breakpoints and *then* starting is the normal workflow, but there is no
 daemon to receive them yet and the FIFO write was silently dropped. They are now
 held in `kak_dap_pending`, painted in the gutter immediately so the user gets
 feedback, and replayed once the adapter reports `initialized`.
+
+---
+
+# Addendum — kakoune_bugs.md
+
+## AD. `map global goto <key>` is accepted for keys goto mode cannot dispatch
+
+Item 3 asked for Helix's `gn`/`gp`. They are not reachable, and the way they
+fail is worth recording because it defeats the verification method used
+everywhere else in this bundle:
+
+    map global goto n ': buffer-next<ret>'   # succeeds, no error
+    debug mappings                           # lists `goto n` as bound
+    press gn                                 # "key not mapped"
+
+Kakoune's goto mode is implemented in C++ and only dispatches keys it already
+knows. `map` records the binding and `debug mappings` faithfully reports what
+was recorded — but the goto handler never consults it for a letter that is not
+one of its own. Reproduced in a bare `kak -n` with no config, so it is upstream
+behaviour rather than a conflict in this config.
+
+Tested: `D`, `i` accept maps (they are real goto keys — which is why the Phase 6
+`gD`/`gi` bindings work); `n`, `p`, `q`, `w`, `z`, `Q` are all rejected at press
+time despite mapping cleanly.
+
+**Consequence for the method:** `debug mappings` is authoritative for *shadowing*
+(finding R) but not for *reachability* in built-in minor modes. A binding needs
+pressing to prove it works — the same lesson as finding V, one level deeper.
+
+Buffer navigation therefore went to `]b`/`[b` in the bracket-nav modes this
+bundle owns, plus `<space>n`/`<space>p`. `ga` already does Helix's `ga`.
+
+## AE. A `map` before its `declare-user-mode` breaks the whole config
+
+Adding `map global kak-ide B` near the top of `keymap.kak` — above the
+`declare-user-mode kak-ide` that appears much further down — fails with
+"no such keymap mode: 'kak-ide'", and that error aborts parsing of the entire
+`kakrc` chain: every later binding silently disappears. The symptom in
+`test/keymap.sh` is indistinguishable from the empty-dump harness bug of
+finding T: everything reports "unbound" at once.
+
+Rule: a mode's bindings must live below its `declare-user-mode`. When many
+assertions fail simultaneously, check for a parse error in the debug buffer
+before trusting the failures.
