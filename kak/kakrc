@@ -37,21 +37,40 @@ add-highlighter global/ regex \h+$ 0:Error
 # `indentwidth`. The other separators are blanked to spaces so only the guide
 # shows and ordinary spaces/tabs/newlines stay invisible.
 #
-# Two cases, because the guide is derived differently for each:
-#   spaces — `-indent` steps by `indentwidth` (2 for web, 4 for Rust here)
-#   tabs   — `indentwidth` is 0 for tab-indented filetypes (Go, Makefile), so
-#            `-indent` produces nothing; the guide has to come from `-tab`.
-# Applied per window, since indentwidth is a per-window option.
-hook global WinCreate .* %{
-    hook -once window WinSetOption filetype=.* %{
-        evaluate-commands %sh{
-            if [ "${kak_opt_indentwidth:-0}" -eq 0 ]; then
-                printf "add-highlighter -override window/indent-guides show-whitespaces -tab '│' -tabpad ' ' -lf ' ' -spc ' ' -nbsp ' '\n"
-            else
-                printf "add-highlighter -override window/indent-guides show-whitespaces -indent '│' -tab ' ' -tabpad ' ' -lf ' ' -spc ' ' -nbsp ' '\n"
-            fi
+# Two forms, because `-indent` only ever replaces a SPACE:
+#   space-indented  `-indent` steps by indentwidth (2 for web, 4 for Rust)
+#   tab-indented    `-indent` draws nothing at all; the guide must come from
+#                   `-tab`, which paints the tab character itself
+#
+# The choice must come from what the buffer actually CONTAINS, not from
+# `indentwidth`: a .js file is configured to 2 here, yet may well be indented
+# with tabs, and keying off the option left exactly that case with no guides.
+# So look at the text — `^\t` on any line means tab-indented.
+declare-option -hidden str kak_ig_style spaces
+
+define-command -hidden kak-indent-guides-apply %{
+    evaluate-commands -draft %{
+        set-option window kak_ig_style spaces
+        try %{
+            execute-keys '%s^\t<ret>'
+            set-option window kak_ig_style tabs
         }
     }
+    evaluate-commands %sh{
+        : "$kak_opt_kak_ig_style"
+        if [ "$kak_opt_kak_ig_style" = tabs ]; then
+            printf "add-highlighter -override window/indent-guides show-whitespaces -tab '│' -tabpad ' ' -lf ' ' -spc ' ' -nbsp ' '\n"
+        else
+            printf "add-highlighter -override window/indent-guides show-whitespaces -indent '│' -tab ' ' -tabpad ' ' -lf ' ' -spc ' ' -nbsp ' '\n"
+        fi
+    }
+}
+
+# On filetype (indentwidth is settled by then) and again after a write, since
+# a reformat can switch a file between tabs and spaces.
+hook global WinCreate .* %{
+    hook window WinSetOption filetype=.* kak-indent-guides-apply
+    hook window BufWritePost .*         kak-indent-guides-apply
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
