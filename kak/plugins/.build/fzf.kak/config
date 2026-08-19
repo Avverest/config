@@ -10,8 +10,47 @@ try %{
     set-option global fzf_file_command        'fd --type f --follow --hidden --exclude .git'
     set-option global fzf_grep_command        'rg --line-number --no-column --no-heading --color=never --smart-case '''''
     set-option global fzf_preview             true
-    set-option global fzf_highlight_command   %sh{ command -v bat >/dev/null 2>&1 && echo 'bat --color=always --style=plain {}' || echo cat }
+
+    # PREVIEW COMMAND — the `{}` matters.
+    # fzf.kak special-cases the names bat/coderay/highlight/rouge/clp and passes
+    # anything else through verbatim into `--preview '(<cmd> || cat {})'`. A bare
+    # `cat` therefore becomes `cat` with NO argument, which reads stdin and
+    # renders an empty preview pane. The fallback must name the file itself.
+    set-option global fzf_highlight_command %sh{
+        if command -v bat >/dev/null 2>&1; then
+            echo 'bat --color=always --style=numbers --paging=never {}'
+        else
+            echo 'cat {}'
+        fi
+    }
     set-option global fzf_grep_preview_command %sh{ command -v bat >/dev/null 2>&1 && echo bat || echo cat }
+
+    # PREVIEW LAYOUT — 35% file list / 65% preview.
+    # `fzf_preview_pos auto` flips between a right split and a top split based on
+    # the terminal's aspect ratio, so the width setting only applied some of the
+    # time. Pin it to `right` so the 65% is what you actually get.
+    set-option global fzf_preview_pos    'right'
+    set-option global fzf_preview_width  '65%'
+    set-option global fzf_preview_height '65%'   ;# used if pos is ever set to top/bottom
+
+    # WINDOW SIZE — fzf runs in a new terminal, and Kakoune's default
+    # `windowing_placement` is "window", i.e. a whole separate WezTerm window.
+    # Split the current pane instead and give fzf 70% of it, so the picker is
+    # large and stays in context. Falls back to Kakoune's own `terminal` when
+    # not running under WezTerm.
+    define-command -hidden -params 1.. kak-ide-fzf-terminal %{
+        evaluate-commands %sh{
+            if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
+                wezterm cli split-pane --bottom --percent 70 \
+                    --cwd "${kak_client_env_PWD:-$PWD}" \
+                    --pane-id "${kak_client_env_WEZTERM_PANE}" \
+                    -- "$@" >/dev/null 2>&1
+            else
+                printf 'terminal %%arg{@}\n'
+            fi
+        }
+    }
+    set-option global fzf_terminal_command 'kak-ide-fzf-terminal'
 
     # Shell snippet shared by the project-scoped commands below: sets $root to
     # the VCS root of the current buffer, falling back to a marker file, then

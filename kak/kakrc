@@ -31,18 +31,20 @@ add-highlighter global/ wrap -word -indent
 add-highlighter global/ regex \h+$ 0:Error
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Filetype detection (extensions Kakoune doesn't map by default)
+# Filetype, indentation and formatting
+#
+# The seven languages the parity plan targets — Rust, TypeScript, JavaScript,
+# JSX, TSX, HTML, CSS (+SCSS/LESS) and Lua — are configured by kak-ide, which
+# is sourced further down. Only the languages it does NOT cover are set here.
+#
+# (Kakoune already maps .mjs/.cjs/.mts/.cts itself, via `.*[.][cm]?(js|ts)x?`
+#  in rc/filetype/javascript.kak, so the hooks that used to live here were
+#  redundant. .jsx/.tsx are now given their own filetypes by kak-ide so that
+#  kak-tree-sitter picks the JSX-capable query sets.)
 # ─────────────────────────────────────────────────────────────────────────────
-hook global BufCreate .*\.tsx$        %{ set-option buffer filetype typescript }
-hook global BufCreate .*\.jsx$        %{ set-option buffer filetype javascript }
-hook global BufCreate .*\.(mjs|cjs)$  %{ set-option buffer filetype javascript }
-hook global BufCreate .*\.(mts|cts)$  %{ set-option buffer filetype typescript }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Indentation per language
-#   2-space soft tabs for web/config languages, real tabs for Go (gofmt's choice)
-# ─────────────────────────────────────────────────────────────────────────────
-hook global WinSetOption filetype=(?:javascript|typescript|json|css|scss|less|html|markdown|yaml|lua) %{
+# Soft 2-space tabs for the config/markup languages kak-ide leaves alone.
+hook global WinSetOption filetype=(?:json|markdown|yaml|toml) %{
     set-option window tabstop 2
     set-option window indentwidth 2
     # expandtab: convert an inserted tab into spaces based on tabstop
@@ -56,15 +58,15 @@ hook global WinSetOption filetype=go %{
     set-option window aligntab true
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Formatting on save (uses Kakoune's built-in `format` + `formatcmd`)
-#   Prettier  -> TS/JS/JSON/CSS/SCSS/LESS/HTML/Markdown/YAML
-#   gofmt     -> Go            (swap for `goimports` if you want import management)
-#   stylua    -> Lua
-# A failed formatter (e.g. a syntax error) leaves the buffer untouched.
-# ─────────────────────────────────────────────────────────────────────────────
-hook global BufSetOption filetype=(?:javascript|typescript|json|css|scss|less|html|markdown|yaml) %{
-    set-option buffer formatcmd %{prettier --stdin-filepath "%val{buffile}"}
+# Format on save for the non-kak-ide languages. A failed formatter (e.g. a
+# syntax error mid-edit) leaves the buffer untouched.
+# NOTE ON QUOTING: Kakoune runs formatcmd via `eval "$kak_opt_formatcmd"` in a
+# shell, so the value has to be finished shell. Written as %{...} — a raw
+# string — a `%val{buffile}` inside it is never expanded and the formatter is
+# handed the literal text "%val{buffile}", fails, and silently changes nothing.
+# A "..." string expands at set time, which is what we want here.
+hook global BufSetOption filetype=(?:json|markdown|yaml) %{
+    set-option buffer formatcmd "prettier --stdin-filepath '%val{buffile}'"
     hook buffer -group format-on-save BufWritePre .* format
 }
 
@@ -73,9 +75,13 @@ hook global BufSetOption filetype=go %{
     hook buffer -group format-on-save BufWritePre .* format
 }
 
+# Lua: stylua wins over the language server's formatter when it is installed.
+# kak-ide sets no formatcmd for Lua, so this simply fills that slot.
 hook global BufSetOption filetype=lua %{
-    set-option buffer formatcmd %{stylua --stdin-filepath "%val{buffile}" -}
-    hook buffer -group format-on-save BufWritePre .* format
+    evaluate-commands %sh{
+        command -v stylua >/dev/null 2>&1 &&
+            printf "set-option buffer formatcmd %%{stylua --stdin-filepath '%s' -}\n" "$kak_buffile"
+    }
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -91,39 +97,14 @@ evaluate-commands %sh{
 }
 
 try %{
-    lsp-enable
-
     # Show LSP breadcrumbs / diagnostics counts in the modeline
     set-option global modelinefmt "%opt{lsp_modeline} %opt{modelinefmt}"
 
-    # ── TypeScript / JavaScript: tsserver for intelligence + ESLint for linting ──
-    hook global BufSetOption filetype=(?:javascript|typescript) %{
-        set-option buffer lsp_servers %{
-            [typescript-language-server]
-            root_globs = ["package.json", "tsconfig.json", "jsconfig.json", ".git"]
-            args = ["--stdio"]
-
-            [eslint]
-            command = "vscode-eslint-language-server"
-            args = ["--stdio"]
-            root_globs = [
-                "package.json", ".git",
-                ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json", ".eslintrc.yml",
-                "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"
-            ]
-            settings_section = "eslint"
-            [eslint.settings.eslint]
-            "validate" = "on"
-            "run"      = "onType"
-            "quiet"    = false
-            [eslint.settings.eslint.codeActionOnSave]
-            "enable" = true
-            "mode"   = "all"
-        }
-        # Optional: apply ESLint autofix on save (runs before Prettier's format hook).
-        # ESLint must be installed in the project for this to do anything.
-        # hook buffer -group eslint-fix BufWritePre .* %{ lsp-code-action-sync '(?i)fix all' }
-    }
+    # Servers for Rust / TS / JS / JSX / TSX / HTML / CSS / Lua live in
+    # plugins/kak-ide/rc/languages.kak, and Biome/ESLint/Prettier are attached
+    # per project by plugins/kak-ide/rc/tooling.kak. kak-ide also enables LSP
+    # per window (WinCreate), so no global `lsp-enable` is needed here.
+    # Only the languages kak-ide does not cover are configured below.
 
     # ── Go ──
     hook global BufSetOption filetype=go %{
@@ -138,32 +119,6 @@ try %{
         }
         # Optional: let gopls organize imports on save instead of plain gofmt
         # hook buffer -group go-imports BufWritePre .* %{ lsp-code-action-sync '(?i)organize imports' }
-    }
-
-    # ── Lua ──
-    hook global BufSetOption filetype=lua %{
-        set-option buffer lsp_servers %{
-            [lua-language-server]
-            root_globs = [".luarc.json", ".luarc.jsonc", ".git"]
-        }
-    }
-
-    # ── HTML ──
-    hook global BufSetOption filetype=html %{
-        set-option buffer lsp_servers %{
-            [vscode-html-language-server]
-            root_globs = ["package.json", ".git"]
-            args = ["--stdio"]
-        }
-    }
-
-    # ── CSS / SCSS / LESS ──
-    hook global BufSetOption filetype=(?:css|scss|less) %{
-        set-option buffer lsp_servers %{
-            [vscode-css-language-server]
-            root_globs = ["package.json", ".git"]
-            args = ["--stdio"]
-        }
     }
 
     # ── Markdown (optional; requires `marksman`) ──
@@ -199,6 +154,35 @@ try %{
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# kak-ide — the IDE layer built to KAKOUNE-PARITY-PLAN.md
+#   Must come AFTER the `kak-lsp` block above (it extends lsp_servers) and
+#   BEFORE kak-tree-sitter (it decides the filetypes tree-sitter keys off).
+#   See plugins/kak-ide/README.md for what it provides and how to configure it.
+# ─────────────────────────────────────────────────────────────────────────────
+source "%val{config}/plugins/kak-ide/rc/kak-ide.kak"
+
+# kaktree was installed but never referenced here, so the file explorer was
+# dead weight. It needs perl (present) and a jump client to open files into.
+plug "andreyorst/kaktree" config %{
+    # kaktree declares its options inside `provide-module kaktree`, so they do
+    # not exist until the module is required.
+    require-module kaktree
+
+    hook global WinSetOption filetype=kaktree %{
+        remove-highlighter buffer/numbers
+        remove-highlighter buffer/matching
+        remove-highlighter buffer/wrap
+        remove-highlighter buffer/show-whitespaces
+    }
+    set-option global kaktree_double_click_duration '0.5'
+    set-option global kaktree_indentation 1
+    set-option global kaktree_dir_icon_open  '▾ 📂'
+    set-option global kaktree_dir_icon_close '▸ 📁'
+    set-option global kaktree_file_icon      '⠀⠀📄'
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tree-sitter (kak-tree-sitter): grammar-aware highlighting + structural selection
 # ─────────────────────────────────────────────────────────────────────────────
 evaluate-commands %sh{
@@ -209,6 +193,14 @@ evaluate-commands %sh{
     fi
 }
 colorscheme night-owl        # uncomment once a tree-sitter theme is installed
+# Opt-in keymap modules (kak-ide). These only surface capability that is
+# already installed and was otherwise unreachable:
+#   treesitter — kak-tree-sitter's 70 structural bindings, via `,t` + <a-o/i/n/p>
+#   git        — Kakoune's native git.kak hunk nav (]c/[c) + a live diff gutter
+# Helix-parity <space> leader stays off; run :kak-ide-keymap-helix-enable to try
+# it (it relocates Kakoune's <space> to <a-space>).
+kak-ide-keymap-treesitter-enable
+kak-ide-keymap-git-enable
 
 # kak-tree-sitter ships no mappings by default. For its semantic-selection user
 # mode and object-mode (<a-i> / <a-a>) integration, see the "Usage" section of
@@ -231,8 +223,47 @@ plug "andreyorst/fzf.kak" config %{
     set-option global fzf_file_command        'fd --type f --follow --hidden --exclude .git'
     set-option global fzf_grep_command        'rg --line-number --no-column --no-heading --color=never --smart-case '''''
     set-option global fzf_preview             true
-    set-option global fzf_highlight_command   %sh{ command -v bat >/dev/null 2>&1 && echo 'bat --color=always --style=plain {}' || echo cat }
+
+    # PREVIEW COMMAND — the `{}` matters.
+    # fzf.kak special-cases the names bat/coderay/highlight/rouge/clp and passes
+    # anything else through verbatim into `--preview '(<cmd> || cat {})'`. A bare
+    # `cat` therefore becomes `cat` with NO argument, which reads stdin and
+    # renders an empty preview pane. The fallback must name the file itself.
+    set-option global fzf_highlight_command %sh{
+        if command -v bat >/dev/null 2>&1; then
+            echo 'bat --color=always --style=numbers --paging=never {}'
+        else
+            echo 'cat {}'
+        fi
+    }
     set-option global fzf_grep_preview_command %sh{ command -v bat >/dev/null 2>&1 && echo bat || echo cat }
+
+    # PREVIEW LAYOUT — 35% file list / 65% preview.
+    # `fzf_preview_pos auto` flips between a right split and a top split based on
+    # the terminal's aspect ratio, so the width setting only applied some of the
+    # time. Pin it to `right` so the 65% is what you actually get.
+    set-option global fzf_preview_pos    'right'
+    set-option global fzf_preview_width  '65%'
+    set-option global fzf_preview_height '65%'   ;# used if pos is ever set to top/bottom
+
+    # WINDOW SIZE — fzf runs in a new terminal, and Kakoune's default
+    # `windowing_placement` is "window", i.e. a whole separate WezTerm window.
+    # Split the current pane instead and give fzf 70% of it, so the picker is
+    # large and stays in context. Falls back to Kakoune's own `terminal` when
+    # not running under WezTerm.
+    define-command -hidden -params 1.. kak-ide-fzf-terminal %{
+        evaluate-commands %sh{
+            if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
+                wezterm cli split-pane --bottom --percent 70 \
+                    --cwd "${kak_client_env_PWD:-$PWD}" \
+                    --pane-id "${kak_client_env_WEZTERM_PANE}" \
+                    -- "$@" >/dev/null 2>&1
+            else
+                printf 'terminal %%arg{@}\n'
+            fi
+        }
+    }
+    set-option global fzf_terminal_command 'kak-ide-fzf-terminal'
 
     # Shell snippet shared by the project-scoped commands below: sets $root to
     # the VCS root of the current buffer, falling back to a marker file, then

@@ -1,0 +1,91 @@
+#!/bin/sh
+# kak-ide — project-wide find & replace  (plan Section 7.2)
+#
+#   kak-ide-replace files   <root> <pattern>
+#   kak-ide-replace preview <root> <pattern> <replacement>
+#   kak-ide-replace apply   <root> <pattern> <replacement>
+#
+# Discovery is ripgrep with --pcre2, substitution is perl. Both are PCRE, so the
+# set of files previewed is exactly the set that will change — using ripgrep's
+# default Rust-regex engine here would let the two disagree on patterns like
+# backreferences, and the preview would be a lie.
+#
+# .gitignore/.ignore are respected (ripgrep default), so vendored trees are not
+# rewritten. Binary files are skipped.
+#
+# Replacement supports $1..$9 backreferences. It is NOT eval'd — group
+# substitution is done explicitly, so a replacement string cannot execute code.
+set -eu
+
+usage() { echo "usage: kak-ide-replace {files|preview|apply} <root> <pattern> [replacement]" >&2; exit 2; }
+[ $# -ge 3 ] || usage
+action=$1; root=$2; pattern=$3; replacement=${4:-}
+
+command -v rg   >/dev/null 2>&1 || { echo "kak-ide-replace: ripgrep (rg) not found" >&2; exit 3; }
+command -v perl >/dev/null 2>&1 || { echo "kak-ide-replace: perl not found" >&2; exit 3; }
+[ -d "$root" ] || { echo "kak-ide-replace: not a directory: $root" >&2; exit 3; }
+
+# Files containing at least one match. -l lists names, --pcre2 matches perl.
+list_files() {
+    rg --pcre2 --files-with-matches --no-messages -e "$pattern" "$root" 2>/dev/null || true
+}
+
+# The substitution itself. Reads the file on stdin, writes the result to stdout.
+# Pattern and replacement arrive via the environment so no quoting layer can
+# mangle them.
+transform() {
+    KI_PAT="$pattern" KI_REP="$replacement" perl -CSD -pe '
+        BEGIN { $pat = qr/$ENV{KI_PAT}/; $rep = $ENV{KI_REP}; }
+        s{$pat}{
+            my @g = ($1,$2,$3,$4,$5,$6,$7,$8,$9);
+            my $out = $rep;
+            # Expand $1..$9 in the replacement without eval: a replacement
+            # string is user text, not code, and must never be executed.
+            $out =~ s/\$([1-9])/defined $g[$1-1] ? $g[$1-1] : ""/ge;
+            $out
+        }ge;
+    '
+}
+
+case "$action" in
+    files)
+        list_files
+        ;;
+    preview)
+        [ $# -ge 4 ] || usage
+        n=0
+        list_files | while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            tmp=$(mktemp "${TMPDIR:-/tmp}/kak-ide-rep.XXXXXX")
+            if transform < "$f" > "$tmp" 2>/dev/null; then
+                if ! cmp -s "$f" "$tmp"; then
+                    diff -u --label "a/${f#"$root"/}" --label "b/${f#"$root"/}" "$f" "$tmp" || true
+                    n=$((n + 1))
+                fi
+            fi
+            rm -f "$tmp"
+        done
+        ;;
+    apply)
+        [ $# -ge 4 ] || usage
+        list_files | while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            tmp=$(mktemp "${TMPDIR:-/tmp}/kak-ide-rep.XXXXXX")
+            if transform < "$f" > "$tmp" 2>/dev/null; then
+                if ! cmp -s "$f" "$tmp"; then
+                    # Preserve the original mode; mktemp creates 0600.
+                    if command -v stat >/dev/null 2>&1; then
+                        mode=$(stat -f '%Lp' "$f" 2>/dev/null || stat -c '%a' "$f" 2>/dev/null || echo 644)
+                    else
+                        mode=644
+                    fi
+                    cat "$tmp" > "$f"          # write through, keeping inode/symlinks
+                    chmod "$mode" "$f" 2>/dev/null || true
+                    printf '%s\n' "$f"
+                fi
+            fi
+            rm -f "$tmp"
+        done
+        ;;
+    *) usage ;;
+esac

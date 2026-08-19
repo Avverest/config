@@ -1,12 +1,20 @@
 try %{ 
 
+    # kaktree declares its options inside `provide-module kaktree`, so they do
+    # not exist until the module is required.
+    require-module kaktree
+
     hook global WinSetOption filetype=kaktree %{
         remove-highlighter buffer/numbers
         remove-highlighter buffer/matching
         remove-highlighter buffer/wrap
         remove-highlighter buffer/show-whitespaces
     }
-    kaktree-enable
+    set-option global kaktree_double_click_duration '0.5'
+    set-option global kaktree_indentation 1
+    set-option global kaktree_dir_icon_open  '▾ 📂'
+    set-option global kaktree_dir_icon_close '▸ 📁'
+    set-option global kaktree_file_icon      '⠀⠀📄'
  } catch %{
     echo -debug "Error while evaluating 'kaktree' configuration: %val{error}"
 

@@ -88,3 +88,13 @@ systemmonitorrc
 user-dirs.dirs
 user-dirs.locale
 xdg-desktop-portal-kderc
+
+# kak-ide generated command-palette index (rebuild with :kak-ide-palette-refresh)
+kak/.kak-ide-palette
+kak/kak-ide-trusted
+
+# Kakoune plugins installed by plug.kak — each is its own git checkout,
+# so committing them here would nest repositories.
+kak/plugins/fzf.kak/
+kak/plugins/kaktree/
+kak/plugins/plug.kak/
