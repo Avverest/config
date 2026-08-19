@@ -386,3 +386,34 @@ second client in a second terminal pane — the terminal must supply it, and
 `kak-ide-open-vsplit`/`-hsplit`, spawning a client on the *same* Kakoune
 session so buffers, registers and language servers are shared. No tmux
 dependency taken.
+
+---
+
+# Addendum — Phase 3 completion (§7.3 goto-file / imports)
+
+Implemented as `bin/kak-ide-resolve` (filesystem probing per language) plus
+`rc/goto.kak` (the Kakoune layer and fallback chain). 18 regression cases in
+`test/goto.sh`, covering every language pair Section 10 names.
+
+Resolution order follows §7.3: probe the filesystem first, fall back to
+`lsp-definition`, then to Kakoune's native `gf`. The resolver deliberately
+returns *nothing* for bare package specifiers and external crates — the server
+resolves those correctly into `node_modules` / `~/.cargo/registry`, and guessing
+would be worse than deferring. Two of the regression cases assert exactly that
+(`import react from "react"`, `use serde::Serialize`).
+
+Three portability bugs worth recording, all found by the tests:
+
+- **BSD `sed` has no `\?` or `\+` in basic regex.** The Rust `mod`/`use`
+  patterns silently matched nothing on macOS. Everything now uses `sed -E`.
+- **No `realpath(1)` on macOS**, and a resolved candidate may legitimately not
+  exist yet, so `./` and `../` are normalised textually rather than by resolving
+  against the filesystem.
+- **`timeout(1)` does not exist on macOS** — a test that used it appeared to
+  pass while actually never running the program under test. Worth remembering:
+  a green result from a command that was never executed looks identical to a
+  real pass.
+
+`gf` is rebound from Kakoune's native goto-file. §8 rule 4 (Kakoune's binding
+wins a conflict) does not apply, because the new behaviour is a superset: the
+native path-opening is still the last fallback.

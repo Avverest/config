@@ -32,6 +32,11 @@ map global user x  ': kak-ide-picker-diagnostics<ret>'      -docstring 'diagnost
 map global user ':' ': kak-ide-picker-palette<ret>'         -docstring 'command palette'
 map global user '%' ': kak-ide-replace<ret>'                -docstring 'project-wide find & replace'
 
+# `gf` — Kakoune's native goto-file only opens a literal selected path. This
+# replaces it with import-aware resolution and keeps the native behaviour as the
+# last fallback, so it is strictly a superset (§8 rule 4 conflict does not apply).
+map global goto f ': kak-ide-goto-file<ret>'                -docstring 'file / import under cursor'
+
 # ─── Structural editing: reach what kak-tree-sitter already installs ────────
 #
 # kak-tree-sitter installs 70 maps of its own across the `tree-sitter`,
@@ -125,6 +130,7 @@ map global kak-ide k  ': lsp-hover<ret>'                        -docstring 'hove
 map global kak-ide '%' ': kak-ide-replace<ret>'                 -docstring 'project-wide find & replace'
 map global kak-ide v  ': kak-ide-picker-files-vsplit<ret>'      -docstring 'find file -> open right'
 map global kak-ide h  ': kak-ide-picker-files-hsplit<ret>'      -docstring 'find file -> open below'
+map global kak-ide f  ': kak-ide-goto-file<ret>'                -docstring 'goto file / import under cursor'
 
 define-command kak-ide-keymap-helix-enable -docstring %{
     kak-ide-keymap-helix-enable: put the Section 8 picker table on <space>

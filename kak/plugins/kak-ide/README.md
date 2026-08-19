@@ -131,6 +131,30 @@ as buffers does not prevent it (also measured). So `kak-ide-rename`:
 The escape hatch is `git checkout -- .` from the project root. Prefer renaming
 from a clean work tree.
 
+### Goto file / import navigation (plan §7.3)
+
+`gf` (goto mode) follows the import or asset reference under the cursor.
+Kakoune's native `gf` only opens a literal selected path; this resolves the
+specifier, and keeps the native behaviour as the final fallback — so it is a
+strict superset, not a conflicting rebind.
+
+Resolution order, as §7.3 specifies: **filesystem probing first** (exact, works
+with no server running), **then `lsp-definition`** for anything it declines
+(bare package specifiers, external crates — the server knows about
+`node_modules` and `~/.cargo/registry`), **then native `gf`**. Several
+candidates go to a picker rather than being guessed at.
+
+| Language | Resolves |
+|---|---|
+| TS / JS / JSX / TSX | `./x`, `../x`, tsconfig/jsconfig `paths` + `baseUrl` aliases, extension order (`.ts` before `.js` — source, not build output), `dir/index.*` |
+| Rust | `mod x;`, `use crate::…`, `use self::…`, `use super::…` → the module tree (`x.rs` / `x/mod.rs`) |
+| Lua | `require("a.b.c")` → `a/b/c.lua`, `a/b/c/init.lua` |
+| HTML | `src=`, `href=` (remote URLs and `data:` correctly ignored) |
+| CSS | `@import`, `url(…)` |
+
+`kak-ide-goto-file-vsplit` / `-hsplit` open the target in a WezTerm pane on the
+same session.
+
 ### Pickers (plan §7.4)
 
 Built in Kakscript over `fzf.kak` — **not** a Rust sidecar; see the RESOLVED
@@ -194,8 +218,11 @@ says Kakoune's binding wins a conflict.
 ## Testing
 
 ```
-plugins/kak-ide/test/smoke.sh          # config resolution, ~10s
+plugins/kak-ide/test/smoke.sh          # config resolution + pickers, ~15s
 plugins/kak-ide/test/smoke.sh --lsp    # also starts servers, ~90s
+plugins/kak-ide/test/goto.sh           # import resolution, 18 cases, ~1s
+plugins/kak-ide/test/refactor.sh       # find/replace, ~5s
+plugins/kak-ide/test/refactor.sh --rename  # also the LSP multi-file rename
 ```
 
 The fixture is a real multi-file project (the plan requires this — single
@@ -224,7 +251,7 @@ files do not exercise root detection or import resolution). Rebuild it with
 | 0 | Audit | done — `AUDIT.md` |
 | 1 | Language plumbing, §6.1 tooling, workspace trust | **done** |
 | 2 | Multi-file rename, project-wide find/replace | **done** — rename verified across 3 files; find/replace built. See the disk-write warning above |
-| 3 | Unified picker core, file explorer, command palette | **done** — goto-file/import resolvers still open |
+| 3 | Picker core, file explorer, command palette, goto-file/import resolvers | **done** |
 | 4 | Tree-sitter textobjects/motions, git gutter + hunk nav | **done via keymap modules** — both were already implemented upstream |
 | 5 | DAP | out of scope unless requested |
 | 6 | Keybinding reconciliation | not started (must come last) |

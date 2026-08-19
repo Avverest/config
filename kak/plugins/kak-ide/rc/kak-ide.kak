@@ -15,13 +15,14 @@
 #   tooling    per-project Biome/ESLint/Prettier detection; appends to the above
 #   picker     picker core over fzf.kak (Section 7.4)
 #   refactor   project-wide find/replace + LSP rename (Sections 7.1, 7.2)
+#   goto       goto-file / import resolution (Section 7.3)
 #   keymap     bindings, incl. opt-in modules for tree-sitter/git/Helix parity
 
 declare-option -docstring "kak-ide version" str kak_ide_version "0.1.0-phase1"
 
 evaluate-commands %sh{
     dir="${kak_source%/*}"
-    for m in project trust languages tooling picker refactor keymap; do
+    for m in project trust languages tooling picker refactor goto keymap; do
         printf 'source "%s/%s.kak"\n' "$dir" "$m"
     done
 }
