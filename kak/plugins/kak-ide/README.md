@@ -11,9 +11,11 @@ patches Kakoune's core.
 
 ## Status
 
-**Phase 1 (language plumbing) complete.** Phases 2–6 are not started; see
-"Roadmap" below and `AUDIT.md` for how the plan's estimates changed once the
-real versions on this machine were checked.
+**Phases 0–4 and 6 complete.** Phase 5 (DAP) is out of scope unless asked
+for. See "Roadmap" below, and `AUDIT.md` for how the plan's estimates changed
+once the real versions on this machine were checked — several items the plan
+budgets as "build" turned out to be already solved upstream, and two shipped
+keybindings turned out to be silently unreachable.
 
 ## Install
 
@@ -211,9 +213,31 @@ and unreachable rather than adding anything new:
   `]f` functions) and refreshes the diff gutter on open/write, which stock
   `git.kak` never does.
 
-`kak-ide-keymap-helix-enable` puts the full §8 table on `<space>` and is **off**
-by default: `<space>` drops all but the main selection in Kakoune, and §8 rule 4
-says Kakoune's binding wins a conflict.
+`kak-ide-keymap-helix-enable` puts the full §8 table on `<space>` and is **on**
+in this config. §8 rule 4 (Kakoune's binding wins a conflict) would normally
+leave it off — `<space>` drops all but the main selection — but `kakrc`'s `,`
+leader is commented out, so without it no key reaches these bindings at all.
+Kakoune's `<space>` is preserved on `<a-space>`, which was unbound.
+
+Because the leader opens the `kak-ide` mode rather than `user`, that mode also
+carries the everyday commands that otherwise lived only on `,`: `w`/`W` write,
+`q` quit, `c` comment, `=` format, `n`/`p` buffer next/previous, `B` close
+buffer, `l` LSP mode, `t` tree-sitter mode, `z` fzf menu.
+
+### Keybindings added by Phase 6
+
+Bound by default, on top of what `kakrc` already had:
+
+| Key | Action | Note |
+|---|---|---|
+| `gD` | declaration | `goto` mode had `D` free |
+| `gi` | implementation | `goto` mode had `i` free |
+| `,D` | diagnostics picker (workspace) | was on `,x`, where `kakrc`'s `:write-quit` silently won |
+| `<a-i>c` / `<a-a>c` | comment text object | kak-tree-sitter ships the query for all 6 languages but never binds `c` |
+| `]C` / `[C` | next / previous comment | same query, search mode |
+
+Everything else in §8's table was already bound, already upstream, or
+deliberately left to Kakoune under §8 rule 4.
 
 ## Testing
 
@@ -223,7 +247,14 @@ plugins/kak-ide/test/smoke.sh --lsp    # also starts servers, ~90s
 plugins/kak-ide/test/goto.sh           # import resolution, 18 cases, ~1s
 plugins/kak-ide/test/refactor.sh       # find/replace, ~5s
 plugins/kak-ide/test/refactor.sh --rename  # also the LSP multi-file rename
+plugins/kak-ide/test/keymap.sh         # 26 binding assertions, ~2s
 ```
+
+`keymap.sh` asserts against `debug mappings` — what Kakoune actually resolved
+after every file loaded — not against what the source asks for. Kakoune
+overwrites a duplicate `map` silently, and `kakrc` is sourced *after* kak-ide,
+so a key this plugin claims can be taken back with no error at all. Two
+bindings had already shipped unreachable that way (`AUDIT.md` §S).
 
 The fixture is a real multi-file project (the plan requires this — single
 files do not exercise root detection or import resolution). Rebuild it with
@@ -254,4 +285,4 @@ files do not exercise root detection or import resolution). Rebuild it with
 | 3 | Picker core, file explorer, command palette, goto-file/import resolvers | **done** |
 | 4 | Tree-sitter textobjects/motions, git gutter + hunk nav | **done via keymap modules** — both were already implemented upstream |
 | 5 | DAP | out of scope unless requested |
-| 6 | Keybinding reconciliation | not started (must come last) |
+| 6 | Keybinding reconciliation | **done** — §8 table bound and asserted against `debug mappings` in `test/keymap.sh` |

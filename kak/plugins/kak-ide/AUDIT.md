@@ -417,3 +417,105 @@ Three portability bugs worth recording, all found by the tests:
 `gf` is rebound from Kakoune's native goto-file. §8 rule 4 (Kakoune's binding
 wins a conflict) does not apply, because the new behaviour is a superset: the
 native path-opening is still the last fallback.
+
+---
+
+# Addendum — Phase 6 (keybinding reconciliation)
+
+## R. `debug mappings` exists — §8 step 1 was solvable after all
+
+Plan §8 step 1 says the current keymap cannot be dumped ("`kak -e 'debug
+options'` won't show this — instead diff against Kakoune's `src/normal.cc`").
+That is wrong for this build: `debug mappings` is a real subcommand and prints
+every mapping in every mode, after all config has loaded. 210 lines here.
+
+This matters beyond convenience. Source-diffing shows what a file *asks* for;
+`debug mappings` shows what Kakoune *resolved*. The two differ whenever one map
+overwrites another, which is silent in Kakoune — and that silence had already
+hidden two live bugs (S below). All Phase 6 assertions are now made against the
+resolved keymap, in `test/keymap.sh`.
+
+## S. Two bindings were shadowed and unreachable
+
+Both found by diffing intent against `debug mappings`, neither producing any
+error at load:
+
+| Key | Claimed by | Actually resolved to | Cause |
+|---|---|---|---|
+| `,x` | `keymap.kak` → diagnostics picker | `kakrc`'s `:write-quit` | `kakrc` sources kak-ide at line 162 and binds `,x` at line 361 — **later wins** |
+| `<space>f` (kak-ide mode) | file picker | goto-file | mapped twice *within keymap.kak itself*; the later line won |
+
+The `,x` case is the more instructive one: the module's own header comment
+asserted that diagnostics lived on `,x` as the resolution of a documented
+conflict with `,d`. It had never been reachable. Load order makes any key
+kak-ide claims revocable by `kakrc` without warning, so intent-in-source is not
+evidence of a binding.
+
+Fixed: diagnostics moved to `,D` (free, and matches Helix's `Space D`), `,x`
+left to `kakrc`. The duplicate `<space>f` line removed, restoring the file
+picker; `kak-ide-goto-file` remains on `gf` where §8 puts it.
+
+## T. `write` silently no-ops onto an existing file
+
+Cost an hour of chasing a "config regression" that was a broken test harness,
+so it is worth recording. `evaluate-commands -buffer *debug* %{ write /path }`
+writes nothing if `/path` already exists and the buffer is unmodified — and
+`*debug*` is never modified. `mktemp` **creates** its file, so the idiom
+
+    maps=$(mktemp)          # file now exists, empty
+    ... write $maps         # no-op
+
+yields an empty dump. Every assertion then reports "unbound" for keys that are
+correctly bound: a harness failure that is indistinguishable from a real
+config regression by its output alone. `test/keymap.sh` deletes the mktemp file
+before writing.
+
+Same family as the `timeout(1)` note in the Phase 3 addendum — a green result
+from a command that never ran, and a red result from an assertion that never
+saw its input, look exactly like real ones.
+
+## U. Gaps closed in this phase
+
+`gD` (declaration) and `gi` (implementation) were in §8's table but unbound;
+`lsp-declaration` and `lsp-implementation` both exist in kakoune-lsp 21 and
+Kakoune's goto mode leaves `D` and `i` free, so neither displaced anything.
+
+The **comment text object** (§2.3) was unbound despite being available: every
+tree-sitter language installed here that ships `textobjects.scm` — rust,
+typescript, tsx, javascript, jsx, lua — defines `@comment.inside`/
+`@comment.around`, but kak-tree-sitter's `rc/text-objects.kak` maps only
+`f`/`t`/`a`/`T` into object mode and never `c`. Bound here in upstream's own
+shape, plus `]C`/`[C` for comment navigation.
+
+Coverage note carried forward from Finding 3: css and html ship no
+`textobjects.scm` upstream, so no text object binding applies to them.
+
+## V. A mode's contents say nothing about its reachability
+
+`kakrc`'s `,` leader — a single `map global normal ,` — is commented out, so at
+the time Phase 6's bindings were verified present via `debug mappings`, **no key
+entered `user` mode at all**. Every `,`-prefixed binding in this config,
+including the `,D` diagnostics picker moved there earlier in this phase, was
+unreachable. The dump shows a mode's contents; it does not show whether anything
+opens it, and asserting the former had looked like proof of the latter.
+
+Resolved by enabling `kak-ide-keymap-helix-enable` (user's choice): `<space>`
+enters the `kak-ide` mode and Kakoune's own `<space>` moves to `<a-space>`.
+Since the leader now opens `kak-ide` and not `user`, the everyday commands that
+existed only on `,` (`w`, `q`, `c`, `=`, `n`, `p`, `l`, `t`, `z`, close-buffer)
+were carried into that mode on the same letters — `n`/`p` and close-buffer also
+answer items 1 and 3 of `kakoune_bugs.md`.
+
+`test/keymap.sh` now asserts that *some* leader reaches the IDE bindings, and
+that `<a-space>` still performs Kakoune's displaced `<space>`.
+
+## W. Unescaping the dump destroys the key names it is read for
+
+`debug mappings` escapes both columns, so the obvious normalizer —
+`sed 's/<space>/ /g'` over the whole line — rewrites the *key* `<space>` into a
+literal blank and makes `<space>` and `<a-space>` permanently unmatchable. The
+assertion then fails against a binding that is present and correct. `keymap.sh`
+unescapes only the command half, leaving the key column as Kakoune printed it.
+
+Related: `<a-space>`'s command *is* the literal key `<space>`, so it is asserted
+on its docstring rather than its command text.

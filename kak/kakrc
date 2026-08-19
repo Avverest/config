@@ -197,10 +197,14 @@ colorscheme night-owl        # uncomment once a tree-sitter theme is installed
 # already installed and was otherwise unreachable:
 #   treesitter — kak-tree-sitter's 70 structural bindings, via `,t` + <a-o/i/n/p>
 #   git        — Kakoune's native git.kak hunk nav (]c/[c) + a live diff gutter
-# Helix-parity <space> leader stays off; run :kak-ide-keymap-helix-enable to try
-# it (it relocates Kakoune's <space> to <a-space>).
+#   helix      — the plan's §8 table on <space> (files, buffers, symbols,
+#                diagnostics, rename, ...). This relocates Kakoune's own <space>
+#                (drop all but the main selection) to <a-space>. It is on because
+#                the `,` leader below is disabled — without it the user-mode
+#                bindings would have no key that reaches them at all.
 kak-ide-keymap-treesitter-enable
 kak-ide-keymap-git-enable
+kak-ide-keymap-helix-enable
 
 # kak-tree-sitter ships no mappings by default. For its semantic-selection user
 # mode and object-mode (<a-i> / <a-a>) integration, see the "Usage" section of
@@ -348,11 +352,11 @@ plug "andreyorst/fzf.kak" config %{
 # ─────────────────────────────────────────────────────────────────────────────
 set-option global autoinfo command|onkey
 
-# Leader = comma. Press "," and wait — a menu of commands appears.
-# (Helix users often prefer Space as the leader. Space is already bound in
-#  Kakoune — it drops all but the main selection — so remap that first if you
-#  want to reuse it as your leader.)
-map global normal , ':enter-user-mode user<ret>' -docstring 'leader — show command menu'
+# Leader = <space>, installed by `kak-ide-keymap-helix-enable` above (Kakoune's
+# own <space> moves to <a-space>). The comma leader below is left disabled; to
+# go back to it, uncomment the map and drop the helix-enable line, since the two
+# reach the same `user` mode and there is no reason to have both.
+# map global normal , ':enter-user-mode user<ret>' -docstring 'leader — show command menu'
 
 # Each -docstring below is what shows up in the which-key popup.
 map global user w ':write<ret>'           -docstring 'write (save)'
