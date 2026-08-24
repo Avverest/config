@@ -1,0 +1,12 @@
+-- Neovim 0.12+ config, использует нативный менеджер плагинов vim.pack
+require("config.plugins")
+require("config.colorscheme")
+require("config.options")
+require("config.keymaps")
+require("config.langmap")
+require("config.mini") -- после options.lua: нужен уже выставленный mapleader
+require("config.buffers")
+require("config.indent")
+require("config.refactor")
+require("config.completion") -- до lsp.lua: оттуда берутся возможности клиента
+require("config.lsp")

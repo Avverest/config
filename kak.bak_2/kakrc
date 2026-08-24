@@ -1,0 +1,268 @@
+evaluate-commands %sh{
+    plugins="$kak_config/plugins"
+    mkdir -p "$plugins"
+    [ ! -e "$plugins/plug.kak" ] && \
+        git clone -q https://github.com/andreyorst/plug.kak.git "$plugins/plug.kak"
+    printf "%s\n" "source '$plugins/plug.kak/rc/plug.kak'"
+}
+plug "andreyorst/plug.kak" noload
+
+
+plug "andreyorst/kaktree" config %{
+    hook global WinSetOption filetype=kaktree %{
+        remove-highlighter buffer/numbers
+        remove-highlighter buffer/matching
+        remove-highlighter buffer/wrap
+        remove-highlighter buffer/show-whitespaces
+    }
+    kaktree-enable
+}
+
+colorscheme kanagawa
+
+# ──────────────────────────────────────────────────────────────────────────
+# Подсветка синтаксиса: kak-tree-sitter
+# ──────────────────────────────────────────────────────────────────────────
+
+# Faces для tree-sitter (ts_*) на палитре kanagawa. Источится ПОСЛЕ темы,
+# потому что использует объявленные ею declare-option с цветами.
+source "%val{config}/colors/kanagawa-tree-sitter.kak"
+
+# Запускаем KTS-сервер (-d демонизирует, если он ещё не поднят) и просим
+# инжектить rc в эту сессию. --with-highlighting обязателен: без него
+# сервер стартует, но подсветку не включает. --with-text-objects даёт
+# user-mode "tree-sitter" для структурных выделений (функция, тип, аргумент).
+evaluate-commands %sh{
+    if command -v kak-tree-sitter >/dev/null 2>&1; then
+        kak-tree-sitter -dks --init "$kak_session" \
+            --with-highlighting --with-text-objects 2>/dev/null
+    fi
+}
+
+# ──────────────────────────────────────────────────────────────────────────
+# LSP: JavaScript / TypeScript (vtsls)
+# ──────────────────────────────────────────────────────────────────────────
+
+eval %sh{kak-lsp}
+
+# ── Внешний вид диагностик ───────────────────────────────────────────────
+# kak-lsp по умолчанию ставит голые red/yellow; переводим на палитру темы.
+# Подчёркивание (+u) вместо заливки, чтобы не спорить с подсветкой синтаксиса.
+set-face global DiagnosticError         "%opt{red}+u"
+set-face global DiagnosticWarning       "%opt{yellow}+u"
+set-face global DiagnosticInfo          "%opt{cyan}+u"
+set-face global DiagnosticHint          "%opt{dimgray}+u"
+set-face global DiagnosticTagUnnecessary "%opt{dimgray}+d"
+set-face global DiagnosticTagDeprecated "+s"
+
+# Текст диагностики в конце строки — приглушённее самого кода.
+set-face global InlayDiagnosticError    "%opt{red}+i"
+set-face global InlayDiagnosticWarning  "%opt{yellow}+i"
+set-face global InlayDiagnosticInfo     "%opt{cyan}+i"
+set-face global InlayDiagnosticHint     "%opt{dimgray}+i"
+
+# Значки в gutter напротив строк с проблемами.
+set-face global LineFlagError           "%opt{red}"
+set-face global LineFlagWarning         "%opt{yellow}"
+set-face global LineFlagInfo            "%opt{cyan}"
+set-face global LineFlagHint            "%opt{dimgray}"
+
+# Inlay hints (типы параметров/возврата) и code lens.
+set-face global InlayHint               "%opt{dimgray}+i"
+set-face global InlayCodeLens           "%opt{dimgray}+i"
+
+# Ссылки/подсветка вхождений символа под курсором.
+set-face global Reference               "%opt{ssel}"
+
+# vtsls вместо стандартного typescript-language-server для js/ts/jsx/tsx.
+# Перекрывает встроенный хук lsp-filetype-javascript из kak-lsp.
+#
+# Линтер выбирается по проекту: если есть biome.json — biome, иначе eslint.
+# Форматирование — вручную (,l f), см. js-format ниже.
+remove-hooks global lsp-filetype-javascript
+hook -group lsp-filetype-javascript global BufSetOption filetype=(?:javascript|typescript) %{
+    evaluate-commands %sh{
+        # Ищем biome.json вверх по дереву от текущего файла.
+        dir=$(dirname "$kak_buffile")
+        biome_root=""
+        while [ "$dir" != "/" ] && [ -n "$dir" ]; do
+            if [ -e "$dir/biome.json" ] || [ -e "$dir/biome.jsonc" ]; then
+                biome_root="$dir"
+                break
+            fi
+            dir=$(dirname "$dir")
+        done
+
+        if [ -n "$biome_root" ]; then
+            linter='
+        [biome]
+        root_globs = ["biome.json", "biome.jsonc"]
+        args = ["lsp-proxy"]
+'
+        else
+            linter='
+        [eslint-language-server]
+        root_globs = [".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json", ".eslintrc.yaml", ".eslintrc.yml", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs", "eslint.config.ts"]
+        command = "vscode-eslint-language-server"
+        args = ["--stdio"]
+        workaround_eslint = true
+        [eslint-language-server.settings]
+        # nodePath обязателен: сервер проверяет его через `!== null`, и без ключа
+        # падает на path.isAbsolute(undefined). Пустая строка = корень воркспейса.
+        nodePath = ""
+        codeActionOnSave = { enable = true, mode = "all" }
+        format = { enable = false }
+        quiet = false
+        rulesCustomizations = []
+        run = "onType"
+        validate = "on"
+        experimental = {}
+        problems = { shortenToSingleLine = false }
+        codeAction.disableRuleComment = { enable = true, location = "separateLine" }
+        codeAction.showDocumentation = { enable = true }
+'
+        fi
+
+        printf '%s\n' "set-option buffer lsp_servers %{
+        [vtsls]
+        root_globs = [\"package.json\", \"tsconfig.json\", \"jsconfig.json\", \"deno.json\", \".git\", \".hg\"]
+        args = [\"--stdio\"]
+        settings_section = \"_\"
+
+        [vtsls.settings._]
+        # Автодополнение
+        typescript.suggest.enabled = true
+        typescript.suggest.autoImports = true
+        typescript.suggest.completeFunctionCalls = true
+        typescript.suggest.classMemberSnippets.enabled = true
+        typescript.suggest.objectLiteralMethodSnippets.enabled = true
+        typescript.suggest.includeCompletionsForImportStatements = true
+        typescript.suggest.includeAutomaticOptionalChainCompletions = true
+        typescript.suggest.paths = true
+        typescript.suggest.completeJSDocs = true
+        javascript.suggest.enabled = true
+        javascript.suggest.autoImports = true
+        javascript.suggest.completeFunctionCalls = true
+        javascript.suggest.classMemberSnippets.enabled = true
+        javascript.suggest.includeCompletionsForImportStatements = true
+        javascript.suggest.includeAutomaticOptionalChainCompletions = true
+        javascript.suggest.paths = true
+        javascript.suggest.completeJSDocs = true
+
+        # Импорты
+        typescript.preferences.importModuleSpecifier = \"shortest\"
+        typescript.preferences.includePackageJsonAutoImports = \"auto\"
+        javascript.preferences.importModuleSpecifier = \"shortest\"
+
+        # Форматирование делают prettier/biome, не vtsls
+        typescript.format.enable = false
+        javascript.format.enable = false
+
+        # Inlay hints
+        typescript.inlayHints.parameterNames.enabled = \"literals\"
+        typescript.inlayHints.variableTypes.enabled = false
+        typescript.inlayHints.functionLikeReturnTypes.enabled = true
+        typescript.inlayHints.enumMemberValues.enabled = true
+        javascript.inlayHints.parameterNames.enabled = \"literals\"
+        javascript.inlayHints.functionLikeReturnTypes.enabled = true
+${linter}    }"
+    }
+}
+
+define-command -hidden js-format -docstring "format buffer with biome or prettier" %{
+    evaluate-commands %sh{
+        dir=$(dirname "$kak_buffile")
+        formatter=""
+        while [ "$dir" != "/" ] && [ -n "$dir" ]; do
+            if [ -e "$dir/biome.json" ] || [ -e "$dir/biome.jsonc" ]; then
+                formatter="biome"
+                break
+            fi
+            dir=$(dirname "$dir")
+        done
+
+        if [ "$formatter" = "biome" ]; then
+            printf '%s\n' "execute-keys -draft '%%|biome format --stdin-file-path=$kak_buffile<ret>'"
+        else
+            printf '%s\n' "execute-keys -draft '%%|prettier --stdin-filepath $kak_buffile<ret>'"
+        fi
+    }
+}
+
+define-command -hidden js-fix-all -docstring "apply all lint fixes (eslint/biome)" %{
+    try %{
+        lsp-code-actions-sync source.fixAll.eslint
+    } catch %{
+        try %{
+            lsp-code-actions-sync source.fixAll.biome
+        } catch %{
+            echo -markup "{Information}no lint fixes available"
+        }
+    }
+}
+
+# Удаление неиспользуемых импортов. vtsls регистрирует это как
+# "source.removeUnusedImports"; в старых версиях был "source.removeUnused".
+define-command -hidden js-remove-unused -docstring "remove unused imports" %{
+    try %{
+        lsp-code-actions-sync source.removeUnusedImports
+    } catch %{
+        try %{
+            lsp-code-actions-sync source.removeUnused
+        } catch %{
+            echo -markup "{Information}no unused imports to remove"
+        }
+    }
+}
+
+lsp-enable
+
+hook global WinSetOption filetype=(javascript|typescript) %{
+    lsp-inlay-hints-enable window
+    lsp-auto-signature-help-enable
+
+    # Подсветка ошибок: подчёркивание в тексте (lsp-enable уже включил
+    # inline-диагностики) + сам текст сообщения в конце строки.
+    lsp-inlay-diagnostics-enable window
+
+    # Semantic tokens от vtsls поверх tree-sitter: уточняют то, что
+    # синтаксическое дерево знать не может — readonly, класс, namespace.
+    hook window -group lsp-semantic-tokens BufReload .* lsp-semantic-tokens
+    hook window -group lsp-semantic-tokens NormalIdle .* lsp-semantic-tokens
+    hook window -group lsp-semantic-tokens InsertIdle .* lsp-semantic-tokens
+    hook -once -always window WinSetOption filetype=.* %{
+        remove-hooks window lsp-semantic-tokens
+    }
+
+    # Автодополнение по мере набора: <tab>/<s-tab> для выбора.
+    map window insert <tab>   '<a-;>:try lsp-snippets-select-next-placeholders catch %{ execute-keys -with-hooks <lt>tab> }<ret>' -docstring 'select next snippet placeholder'
+
+    # LSP-навигация и рефакторинг
+    map window user l ': enter-user-mode lsp<ret>' -docstring 'LSP mode'
+    map window normal <c-]> ': lsp-definition<ret>'   -docstring 'go to definition'
+    map window normal <c-t> ': lsp-references<ret>'   -docstring 'find references'
+    map window normal K     ': lsp-hover<ret>'        -docstring 'hover docs'
+
+    # Форматирование (biome/prettier) и авто-фиксы ESLint — вручную.
+    map window user f ': js-format<ret>'                    -docstring 'format (biome/prettier)'
+    map window user F ': js-fix-all<ret>' -docstring 'apply all lint fixes'
+
+    # ── Code actions ─────────────────────────────────────────────────────
+    # ,a  — все действия в точке курсора (меню; если действие одно, оно
+    #       применяется сразу благодаря -auto-single).
+    # ,q  — только quickfix: починить ошибку под курсором.
+    # ,r  — только рефакторинги (extract/inline/rewrite).
+    # ,i  — упорядочить импорты, ,u — убрать неиспользуемые.
+    map window user a ': lsp-code-actions -auto-single<ret>' -docstring 'code actions'
+    map window user q ': lsp-code-actions -auto-single quickfix<ret>' -docstring 'quickfix under cursor'
+    map window user r ': lsp-code-actions refactor<ret>'     -docstring 'refactor…'
+    map window user i ': lsp-code-actions-sync source.organizeImports<ret>' -docstring 'organize imports'
+    map window user u ': js-remove-unused<ret>'              -docstring 'remove unused imports'
+
+    # Навигация по диагностикам и их список.
+    # Kakoune умеет мапить только одну клавишу, поэтому переходы висят на
+    # goto/object-совместимых одиночных клавишах в user-mode.
+    map window user d ': lsp-diagnostics<ret>'               -docstring 'list diagnostics'
+    map window user n ': lsp-find-error error warning<ret>'            -docstring 'next diagnostic'
+    map window user p ': lsp-find-error --previous error warning<ret>' -docstring 'prev diagnostic'
+}

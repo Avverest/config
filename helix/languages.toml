@@ -1,4 +1,41 @@
 # Js/Ts
+[language-server.typescript-language-server]
+command = "vtsls"
+args = ["--stdio"]
+config.hostInfo = "helix"
+
+[language-server.typescript-language-server.config.typescript]
+updateImportsOnFileMove.enabled = "always"
+suggest.completeFunctionCalls = true
+tsserver.enableTracing = true
+# inlayHints.parameterNames.enabled = "all"
+# inlayHints.parameterTypes.enabled = true
+# inlayHints.variableTypes.enabled = true
+# inlayHints.propertyDeclarationTypes.enabled = true
+# inlayHints.functionLikeReturnTypes = true
+# inlayHints.enumMemberValues.enabled = true
+format.enable = false
+format.semicolons = "remove"
+preferences.importModuleSpecifier = "non-relative"
+preferences.importModuleSpecifierEnding = "auto"
+tsserver.pluginPaths = ["typescript-plugin-css-modules", "./node_modules"]
+
+[language-server.typescript-language-server.config.javascript]
+updateImportsOnFileMove.enabled = "always"
+suggest.completeFunctionCalls = true
+tsserver.enableTracing = true
+format.enable = false
+format.semicolons = "remove"
+inlayHints.parameterNames.enabled = "all"
+inlayHints.parameterTypes.enabled = true
+inlayHints.variableTypes.enabled = true
+inlayHints.propertyDeclarationTypes.enabled = true
+inlayHints.functionLikeReturnTypes = true
+inlayHints.enumMemberValues.enabled = true
+preferences.importModuleSpecifier = "non-relative"
+preferences.importModuleSpecifierEnding = "auto"
+tsserver.pluginPaths = ["typescript-plugin-css-modules", "./node_modules"]
+
 [language-server]
 biome = { command = "biome", args = ["lsp-proxy"] }
 
@@ -6,9 +43,51 @@ biome = { command = "biome", args = ["lsp-proxy"] }
 command = "vscode-eslint-language-server"
 args = ["--stdio"]
 
+[language-server.vscode-css-language-server]
+command = "vscode-css-language-server"
+args = ["--stdio"]
+
+# Tailwind-директивы (@apply/@theme/@custom-variant/@variant/@utility и
+# др.) не входят в спецификацию CSS, поэтому vscode-css-language-server
+# помечает их как unknownAtRules. Глушим только эту проверку —
+# остальная валидация CSS остаётся включённой.
+# Аналог "css.lint.unknownAtRules": "ignore" в VS Code.
+[language-server.vscode-css-language-server.config.css]
+validate = true
+lint = { unknownAtRules = "ignore" }
+
+[language-server.vscode-css-language-server.config.scss]
+validate = true
+lint = { unknownAtRules = "ignore" }
+
+[language-server.vscode-css-language-server.config.less]
+validate = true
+lint = { unknownAtRules = "ignore" }
+
+# Emmet: аббревиатура + подтверждение автодополнения разворачивается
+# в разметку. `div` → <div></div>, `ul>li*3` → список, `.card` → div
+# с классом. Работает через обычный completion-popup, поэтому
+# отдельного кейбинда не нужно.
+# npm: @olrtg/emmet-language-server
+[language-server.emmet-ls]
+command = "emmet-language-server"
+args = ["--stdio"]
+
+# scls — снипеты и completion по словам из буфера. Emmet НЕ умеет,
+# это разные вещи. Бинарник называется полным именем, короткого
+# `scls` в $PATH нет — из-за этого ссылка на "scls" в vue-блоке
+# раньше висела мёртвой.
+[language-server.scls]
+command = "simple-completion-language-server"
+
 [language-server.tailwindcss-ls]
 command = "tailwindcss-language-server"
 args = ["--stdio"]
+# v4 использует CSS-first конфиг (@import "tailwindcss"), файла
+# tailwind.config.js больше нет — корень проекта ищется по package.json
+# и по самому CSS. Не добавлять tailwind.config.* в roots как
+# единственный признак, иначе в v4-проектах LSP не стартует.
+required-root-patterns = ["package.json", "*.css"]
 
 [language-server.eslint.config]
 codeActionsOnSave = { mode = "all", "source.fixAll.eslint" = true }
@@ -27,35 +106,43 @@ showDocumentation = { enable = false }
 
 [[language]]
 name = "javascript"
-language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome" ]
+roots = ["biome.json", "biome.jsonc", "package.json"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome", "tailwindcss-ls", "emmet-ls" ]
+auto-format = false
+
+[[language]]
+name = "jsx"
+roots = ["biome.json", "biome.jsonc", "package.json"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome", "tailwindcss-ls", "emmet-ls" ]
 auto-format = false
 
 [[language]]
 name = "typescript"
-# language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome"]
-language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "eslint"]
-formatter = { command = "prettier", args = ["--parser", "typescript"] }
+roots = ["biome.json", "biome.jsonc", "package.json"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [ { name = "typescript-language-server", except-features = [ "format" ] }, "biome", "tailwindcss-ls"]
 auto-format = false
 
 [[language]]
 name = "tsx"
 auto-format = false
-indent = { tab-width = 2, unit = " "}
-# language-servers = [{ name = "typescript-language-server", except-features = [ "format" ] }, "biome"]
-language-servers = [{ name = "typescript-language-server", except-features = [ "format" ] }, "eslint"]
-formatter = { command = "prettier", args = ["--parser", "typescript"] }
+indent = { tab-width = 2, unit = "  " }
+roots = ["biome.json", "biome.jsonc", "package.json"]
+language-servers = [{ name = "typescript-language-server", except-features = [ "format" ] }, "biome", "tailwindcss-ls", "emmet-ls"]
 # sT/sJ
 
 # Html
 [[language]]
 name = "html"
-language-servers = ["vscode-html-language-server", "tailwindcss-ls"]
+language-servers = ["vscode-html-language-server", "tailwindcss-ls", "emmet-ls"]
 # lmtH
 
 # Css
 [[language]]
 name = "css"
-language-servers = ["vscode-css-language-server", "tailwindcss-ls"]
+language-servers = ["vscode-css-language-server", "tailwindcss-ls", "emmet-ls"]
 # ssC
 
 # Json
@@ -69,8 +156,11 @@ language-servers = ["vscode-json-language-server"]
 [[language]]
 name = "vue"
 auto-format = false
-formatter = { command = "prettier", args = ["--parser", "vue"] }
-language-servers = ["typescript-language-server", "scls"] # Emmet en snippet completion for the last 2
+# npx, а не голый prettier: глобально он не установлен, обычно это
+# локальная devDependency проекта. С голой командой `:format` молча
+# ничего не делает.
+formatter = { command = "npx", args = ["prettier", "--parser", "vue"] }
+language-servers = ["typescript-language-server", "emmet-ls", "scls"] # Emmet + snippet completion for the last 2
 
 [[language-server.typescript-language-server.config.plugins]]
 name = "@vue/typescript-plugin"
@@ -86,10 +176,13 @@ formatter = { command = "goimports" }
 # oG
 
 # Dart
-[[languate-server.dart]]
+[language-server.dart]
 command = 'dart'
-args = ['language-server', '--client-ed=helix']
-config = { dart.closingLabels = true, dart.documentation = 'summary'}
+args = ['language-server', '--client-id=helix']
+
+[language-server.dart.config]
+closingLabels = true
+documentation = 'summary'
 # traD
 
 # ZK http://github.com/zk-org/zk
@@ -102,3 +195,30 @@ name = "markdown"
 roots = [".zk"]
 language-servers = ["zk"]
 # KZ
+
+# ─────────────────────────────────────────────────────────────────────
+# Рабочие проекты (eslint + prettier)
+#
+# Переопределяются НЕ здесь, а локально: <project>/.helix/languages.toml
+# Helix мержит его поверх глобального, блоки с тем же `name` побеждают.
+# prettier/eslint обычно локальные devDependencies, поэтому npx —
+# иначе `:format` молча ничего не делает.
+#
+# [[language]]
+# name = "typescript"
+# language-servers = [
+#   { name = "typescript-language-server", except-features = ["format"] },
+#   "eslint",
+# ]
+# formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
+# auto-format = false
+#
+# [[language]]
+# name = "tsx"
+# language-servers = [
+#   { name = "typescript-language-server", except-features = ["format"] },
+#   "eslint",
+# ]
+# formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
+# auto-format = false
+# ─────────────────────────────────────────────────────────────────────

@@ -33,24 +33,17 @@ try %{
     set-option global fzf_preview_width  '65%'
     set-option global fzf_preview_height '65%'   ;# used if pos is ever set to top/bottom
 
-    # WINDOW SIZE — fzf runs in a new terminal, and Kakoune's default
-    # `windowing_placement` is "window", i.e. a whole separate WezTerm window.
-    # Split the current pane instead and give fzf 70% of it, so the picker is
-    # large and stays in context. Falls back to Kakoune's own `terminal` when
-    # not running under WezTerm.
-    define-command -hidden -params 1.. kak-ide-fzf-terminal %{
-        evaluate-commands %sh{
-            if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
-                wezterm cli split-pane --bottom --percent 70 \
-                    --cwd "${kak_client_env_PWD:-$PWD}" \
-                    --pane-id "${kak_client_env_WEZTERM_PANE}" \
-                    -- "$@" >/dev/null 2>&1
-            else
-                printf 'terminal %%arg{@}\n'
-            fi
-        }
-    }
-    set-option global fzf_terminal_command 'kak-ide-fzf-terminal'
+    # WINDOW SIZE.
+    # Under tmux, fzf.kak does NOT use `fzf_terminal_command` at all: it builds
+    # a `tmux split-window` itself so it can pass a size, which `terminal`
+    # cannot take (see the comment at fzf.kak/rc/fzf.kak:235). So the size comes
+    # from its own options, not from a wrapper command — an earlier wezterm
+    # wrapper here was dead code under tmux for exactly this reason.
+    #
+    # Two heights, because fzf.kak picks between them: the preview one wins
+    # whenever a picker was invoked with -preview, which is all of ours.
+    set-option global fzf_preview_tmux_height '70%'
+    set-option global fzf_tmux_height         '40%'
 
     # Shell snippet shared by the project-scoped commands below: sets $root to
     # the VCS root of the current buffer, falling back to a marker file, then
@@ -93,10 +86,23 @@ try %{
         require-module fzf
         evaluate-commands %sh{
             eval "$kak_opt_fzf_project_root_sh"
+            # Stream only what matches, not the whole tree. The obvious form —
+            # an empty rg pattern, letting fzf fuzzy-match every line — emits
+            # 9.5M lines / 1.0GB on a 25k-file checkout and takes 1.6s before
+            # fzf starts, blowing plan §10's "well under a second" bar. With
+            # --disabled + reload, fzf stops matching and each keystroke re-runs
+            # rg instead: 0.03-0.5s per query on the same tree.
+            #
+            # --max-count caps per-file hits so one generated/minified file
+            # cannot flood the list. The output shape is unchanged, so -filter
+            # and the preview command below still apply verbatim.
             if command -v rg >/dev/null 2>&1; then
-                items="rg --line-number --no-column --no-heading --color=never ''"
+                rg_cmd="rg --line-number --no-column --no-heading --color=never --smart-case --max-count=50"
+                items="${rg_cmd} -- '' | head -n 2000"
+                reload="--disabled --bind 'start:reload:${rg_cmd} -- {q} 2>/dev/null | head -n 2000' --bind 'change:reload:sleep 0.05; ${rg_cmd} -- {q} 2>/dev/null | head -n 2000'"
             else
-                items="grep -RHn '' ."
+                items="grep -RHn '' . | head -n 2000"
+                reload=""
             fi
             if command -v bat >/dev/null 2>&1; then
                 preview="-preview -preview-cmd %{--preview '(bat --color=always --style=plain --highlight-line {2} ${root}/{1} || cat ${root}/{1}) 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
@@ -104,7 +110,7 @@ try %{
                 preview="-preview -preview-cmd %{--preview 'cat ${root}/{1} 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
             fi
             printf "%s\n" "info -title %{fzf project grep} %{root: ${root}}"
-            printf "%s\n" "fzf -kak-cmd %{evaluate-commands} ${preview} -items-cmd %{cd '${root}' && ${items} 2>/dev/null} -filter %{sed -E 's|([^:]+):([^:]+):.*|edit -existing ${root}/\\1; execute-keys \\2gvc|'} -fzf-args %{--reverse --delimiter=':' -n'3..'}"
+            printf "%s\n" "fzf -kak-cmd %{evaluate-commands} ${preview} -items-cmd %{cd '${root}' && ${items} 2>/dev/null} -filter %{sed -E 's|([^:]+):([^:]+):.*|edit -existing ${root}/\\1; execute-keys \\2gvc|'} -fzf-args %{--reverse --delimiter=':' -n'3..' ${reload}}"
         }
     }
 

@@ -7,5 +7,11 @@
         "\u001b\r"
       ]
     }
+  },
+  {
+    "context": "Workspace",
+    "bindings": {
+      "ctrl-;": "terminal_panel::ToggleFocus"
+    }
   }
 ]

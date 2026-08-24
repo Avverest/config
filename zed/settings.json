@@ -1,15 +1,37 @@
 {
+  "edit_predictions": {
+    "provider": "zed",
+    "codestral": {
+      "api_url": "https://codestral.mistral.ai"
+    },
+    "open_ai_compatible_api": {
+      "api_url": "",
+      "model": ""
+    }
+  },
+  "agent_servers": {
+    "claude-acp": {
+      "default_config_options": {
+        "model": "opus",
+        "mode": "auto",
+        "effort": "high"
+      },
+      "type": "registry"
+    }
+  },
   "agent": {
-    "button": false,
+    "button": true,
     "dock": "right",
     "sidebar_side": "right",
     "favorite_models": [],
     "model_parameters": [],
   },
+  "disable_ai": false,
   "collaboration_panel": {
     "button": false,
   },
   "show_edit_predictions": true,
+  "git_commit_buffer_font_size": 20,
   "git_panel": {
     "dock": "left",
     "tree_view": true,
@@ -22,7 +44,7 @@
   },
   "document_folding_ranges": "on",
   "icon_theme": {
-    "mode": "dark",
+    "mode": "light",
     "light": "Zed (Default)",
     "dark": "Zed (Default)",
   },
@@ -38,7 +60,7 @@
   },
   "colorize_brackets": true,
   "toolbar": {
-    "breadcrumbs": true,
+    "breadcrumbs": false,
     "quick_actions": false,
     "selections_menu": false,
     "code_actions": false,
@@ -46,9 +68,9 @@
   },
   "status_bar": {
     "experimental.show": true,
-    "active_language_button": false,
-    "cursor_position_button": false,
-    "line_endings_button": false,
+    "active_language_button": true,
+    "cursor_position_button": true,
+    "show_active_file": true
   },
   "soft_wrap": "bounded",
   "show_wrap_guides": false,
@@ -90,9 +112,9 @@
     "background_coloring": null,
   },
   "theme": {
-    "mode": "dark",
+    "mode": "light",
     "light": "One Light",
-    "dark": "Rich Vesper",
+    "dark": "Kanagawa Dragon",
   },
   "telemetry": {
     "diagnostics": false,
@@ -100,13 +122,17 @@
   },
   "vim_mode": false,
   "helix_mode": true,
-  "ui_font_family": "Iosevka Term",
+  "ui_font_family": "Iosevka",
   // "buffer_font_family": "Iosevka Term",
-  "buffer_font_family": "JetBrainsMono Nerd Font Mono",
+  // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "ui_font_size": 20,
-  "buffer_font_size": 19,
-  "buffer_line_height": "standard",
-  "buffer_font_weight": 400,
+  "buffer_font_size": 20,
+  "markdown_preview_font_size": 23,
+  "markdown_preview": {
+    "max_width": 1100
+  },
+  "buffer_line_height": "comfortable",
+  "buffer_font_weight": 200,
   "ui_font_weight": 400,
   "preferred_line_length": 140,
   "show_whitespaces": "none",
@@ -123,7 +149,7 @@
   "terminal": {
     "button": true,
     "font_weight": 250,
-    "dock": "right"
+    "dock": "right",
   },
   "tab_size": 2,
   "unstable.ui_density": "compact",
@@ -145,4 +171,12 @@
   },
   "bottom_dock_layout": null,
   "format_on_save": "off",
+  "lsp": {
+    "biome": {
+      "settings": {
+        "require_config_file": true,
+        "config_path": "./biome.json",
+      },
+    },
+  },
 }

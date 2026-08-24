@@ -1,0 +1,162 @@
+# ═══════════════════════════════════════════════════════════════════════
+# ПРИМЕР: eslint + prettier для рабочих проектов
+#
+# Этот файл Helix НЕ читает. Он лежит здесь как шпаргалка.
+# Из ~/.config/helix/ читаются только config.toml и languages.toml.
+#
+# Использование: скопировать нужные блоки в корень проекта:
+#   mkdir -p <project>/.helix
+#   cp ~/.config/helix/examples/eslint-prettier.languages.toml \
+#      <project>/.helix/languages.toml
+#
+# Локальный .helix/languages.toml мержится ПОВЕРХ глобального,
+# блоки с тем же `name` побеждают. Глобальный дефолт — biome
+# (личные проекты), здесь он перекрывается на eslint+prettier.
+#
+# Не забыть добавить .helix в .gitignore, если это не общая
+# договорённость команды.
+# ═══════════════════════════════════════════════════════════════════════
+
+# ─── ГРАБЛИ, на которые уже наступали ─────────────────────────────────
+#
+# 1. НЕ дублировать [[language]] с одним `name`, надеясь, что Helix
+#    выберет нужный по `roots`. Он так НЕ работает: блоки мержатся,
+#    побеждает последний — глобально, во всех проектах сразу.
+#    `roots` = только определение корня workspace для LSP,
+#    это НЕ условие применения конфига.
+#    Разделение по проектам делается локальным .helix/languages.toml.
+#
+# 2. `formatter` ПЕРЕКРЫВАЕТ форматирование через LSP. Если задан
+#    prettier — biome/eslint formatting уже не вызовется, даже если
+#    сервер подключён.
+#
+# 3. Команда форматтера ищется в $PATH. prettier обычно локальная
+#    devDependency и глобально НЕ установлен → голый
+#    `command = "prettier"` тихо не сработает, `:format` просто
+#    ничего не сделает без ошибки. Отсюда npx ниже.
+#    Проверять: `hx --health tsx` → строка `Configured formatter`.
+#
+# 4. `except-features = ["format"]` у typescript-language-server
+#    обязателен, иначе tsserver дерётся за форматирование с prettier.
+# ──────────────────────────────────────────────────────────────────────
+
+[[language]]
+name = "typescript"
+roots = ["package.json", ".eslintrc", ".eslintrc.json", "eslint.config.mjs"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "eslint",
+]
+formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
+auto-format = false
+
+[[language]]
+name = "tsx"
+roots = ["package.json", ".eslintrc", ".eslintrc.json", "eslint.config.mjs"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "eslint",
+]
+formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
+auto-format = false
+
+[[language]]
+name = "javascript"
+roots = ["package.json", ".eslintrc", ".eslintrc.json", "eslint.config.mjs"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "eslint",
+]
+formatter = { command = "npx", args = ["prettier", "--parser", "babel"] }
+auto-format = false
+
+[[language]]
+name = "jsx"
+roots = ["package.json", ".eslintrc", ".eslintrc.json", "eslint.config.mjs"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [
+  { name = "typescript-language-server", except-features = ["format"] },
+  "eslint",
+]
+formatter = { command = "npx", args = ["prettier", "--parser", "babel"] }
+auto-format = false
+
+# ─── Прочие типы файлов ───────────────────────────────────────────────
+# Глобальный конфиг для них eslint/prettier не задаёт — раскомментировать,
+# если в проекте prettier форматирует и их тоже.
+
+# [[language]]
+# name = "json"
+# indent = { tab-width = 2, unit = "  " }
+# language-servers = ["vscode-json-language-server"]
+# formatter = { command = "npx", args = ["prettier", "--parser", "json"] }
+# auto-format = false
+
+# [[language]]
+# name = "css"
+# indent = { tab-width = 2, unit = "  " }
+# language-servers = ["vscode-css-language-server", "tailwindcss-ls"]
+# formatter = { command = "npx", args = ["prettier", "--parser", "css"] }
+# auto-format = false
+
+# [[language]]
+# name = "scss"
+# indent = { tab-width = 2, unit = "  " }
+# language-servers = ["vscode-css-language-server", "tailwindcss-ls"]
+# formatter = { command = "npx", args = ["prettier", "--parser", "scss"] }
+# auto-format = false
+
+# [[language]]
+# name = "html"
+# indent = { tab-width = 2, unit = "  " }
+# language-servers = ["vscode-html-language-server", "tailwindcss-ls"]
+# formatter = { command = "npx", args = ["prettier", "--parser", "html"] }
+# auto-format = false
+
+# [[language]]
+# name = "yaml"
+# indent = { tab-width = 2, unit = "  " }
+# formatter = { command = "npx", args = ["prettier", "--parser", "yaml"] }
+# auto-format = false
+
+# [[language]]
+# name = "markdown"
+# formatter = { command = "npx", args = ["prettier", "--parser", "markdown"] }
+# auto-format = false
+
+# ─── Vue ──────────────────────────────────────────────────────────────
+# Глобальный блок vue уже использует prettier, но с голой командой —
+# в проекте с локальным prettier нужен npx:
+#
+# [[language]]
+# name = "vue"
+# formatter = { command = "npx", args = ["prettier", "--parser", "vue"] }
+# auto-format = false
+# language-servers = ["typescript-language-server", "scls"]
+
+# ─── ПРОВЕРКА ─────────────────────────────────────────────────────────
+#
+#   cd <project> && hx --health tsx
+#
+# Ожидается:
+#   ✓ typescript-language-server: /opt/homebrew/bin/vtsls
+#   ✓ eslint: /opt/homebrew/bin/vscode-eslint-language-server
+#   Configured formatter: npx    ← НЕ "None"
+#
+# `Configured formatter: None` = блок не подхватился или команда
+# не найдена в $PATH.
+#
+# Если prettier всё же не отрабатывает — проверить руками из корня
+# проекта, что он вообще установлен:
+#   npx prettier --version
+#
+# Установлено глобально на этой машине (на 2026-08-19):
+#   vscode-eslint-language-server  /opt/homebrew/bin/  ✓
+#   vtsls                          /opt/homebrew/bin/  ✓
+#   biome                          ~/Library/pnpm/bin/ ✓
+#   prettier                       ОТСУТСТВУЕТ → только npx
+#   eslint (cli)                   ОТСУТСТВУЕТ → только npx
+# ──────────────────────────────────────────────────────────────────────

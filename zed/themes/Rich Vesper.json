@@ -55,7 +55,7 @@
         "editor.background": "#101010",
         "editor.gutter.background": "#101010",
         "editor.subheader.background": "#101010",
-        "editor.active_line.background": "#191919",
+        "editor.active_line.background": "#212020",
         "editor.indent_guide": "#FFFFFF05",
         "editor.indent_guide_active": "#FFFFFF0A",
         "editor.highlighted_line.background": "#101010",
@@ -141,7 +141,7 @@
           {
             "cursor": "#FFC799ff",
             "background": "#FFC799ff",
-            "selection": "#FFC79905"
+            "selection": "#FFC79920"
           },
           {
             "cursor": "#99FFE4ff",
