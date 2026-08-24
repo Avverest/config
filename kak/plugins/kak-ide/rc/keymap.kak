@@ -1,41 +1,29 @@
-# kak-ide — keybindings  (plan Section 8)
+# kak-ide — keybindings
 #
-# Section 8's target table puts every picker on `<space>`. Section 8 rule 4 says
-# that where a Helix key collides with a long-standing Kakoune key, Kakoune wins
-# and the Helix action goes on a secondary binding — "Kakoune, IDE-ified", not
-# "Helix wearing a Kakoune costume". `<space>` is exactly that case: in Kakoune
-# it drops all but the main selection, which is core, muscle-memory editing.
-# This config already reached the same conclusion and uses `,` as its leader.
+# Kakoune's own keys win, everywhere. This file adds only what was otherwise
+# unreachable, and only on keys Kakoune leaves free:
 #
-# So, per rule 4 and rule 5 ("ship the full set as one togglable keymap module"):
+#   `,` / <space> leader   the `user` mode both keys already open
+#   `]` / `[`              unbound in Kakoune; used for bracket-nav
+#   goto D / i             goto mode has no D or i of its own
 #
-#   default    — new actions are added to the existing `,` leader, using only
-#                letters that were free. Nothing already bound is reassigned.
-#   opt-in     — `:kak-ide-keymap-helix-enable` installs the full Section 8
-#                table on `<space>`, relocating Kakoune's `<space>` to `<a-space>`.
+# An earlier revision shipped a "Helix parity" module that put pickers on
+# <space> and tree-sitter motions on <a-o>/<a-i>/<a-n>/<a-p>. Both are gone:
 #
-# Conflicts left deliberately unresolved in the default map, because the
-# existing binding is the user's and predates this work:
-#   ,r  recent files      (Section 8 wants: rename symbol -> placed on ,R)
-#   ,d  delete buffer     (Section 8 wants: diagnostics   -> placed on ,D)
-#   ,?  cheat sheet       (Section 8 wants: palette       -> placed on ,:)
+#   <a-i>/<a-a> are Kakoune's object-selection prefixes — the core of the
+#   editing model — and <a-o>/<a-n>/<a-p> insert a line, select the previous
+#   match, and paste after each selection. Taking those four keys cost more
+#   than the motions gained; tree-sitter's own 70 bindings are reached via `,t`.
 #
-# Note on ,x: an earlier revision placed diagnostics there, but `kakrc` binds
-# ,x to :write-quit and is sourced AFTER this module, so kakrc silently won and
-# the diagnostics picker was unreachable. Verified with `debug mappings`.
-# It now lives on ,D, which was free and matches Helix's `Space D` anyway.
+#   <space> needed no relocating in the first place: in Kakoune 2026.05.21 it
+#   is already the standard entry to user mode (`:doc keys`, "user mode"), and
+#   <a-space> is what drops all but the main selection. The module swapped two
+#   keys that were already in the right places.
 
 # ─── Additions to the existing `,` leader ────────────────────────────────────
 
 map global user a  ': lsp-code-actions<ret>'                -docstring 'code actions'
-map global user R  ': kak-ide-rename<ret>'                  -docstring 'rename symbol (workspace, reviewable)'
-map global user g  ': kak-ide-picker-changed<ret>'          -docstring 'changed files (git)'
-map global user j  ': kak-ide-picker-jumps<ret>'            -docstring 'recent locations'
-map global user "'" ': kak-ide-picker-last<ret>'            -docstring 'last picker'
 map global user e  ': kaktree-toggle<ret>'                  -docstring 'file explorer'
-map global user D  ': kak-ide-picker-diagnostics<ret>'      -docstring 'diagnostics (workspace)'
-map global user ':' ': kak-ide-picker-palette<ret>'         -docstring 'command palette'
-map global user '%' ': kak-ide-replace<ret>'                -docstring 'project-wide find & replace'
 
 # Section 8's goto table: kakrc already binds gd/gr/gy. Kakoune leaves `D` and
 # `i` free in goto mode (its own goto has no such keys), so the two remaining
@@ -56,10 +44,6 @@ map global goto i ': lsp-implementation<ret>' -docstring 'implementation'
 # `]b`/`[b`, alongside `]c`/`]d`/`]f` — plus `<space>n`/`<space>p` on the
 # leader. `ga` (Kakoune's own last-buffer) still does the Helix `ga` job.
 
-# `gf` — Kakoune's native goto-file only opens a literal selected path. This
-# replaces it with import-aware resolution and keeps the native behaviour as the
-# last fallback, so it is strictly a superset (§8 rule 4 conflict does not apply).
-map global goto f ': kak-ide-goto-file<ret>'                -docstring 'file / import under cursor'
 
 # ─── Closing buffers (kakoune_bugs.md item 1) ────────────────────────────────
 #
@@ -131,9 +115,10 @@ define-command -hidden -params 1 kak-ide-close-buffer-impl %{
 define-command kak-ide-keymap-treesitter-enable -docstring %{
     kak-ide-keymap-treesitter-enable: reach kak-tree-sitter's structural motions
 
-    Adds `,t` to enter tree-sitter mode (where its own 70 bindings live) and
-    Helix-style <a-o>/<a-i>/<a-n>/<a-p> for parent/child/sibling. Object mode is
-    left alone — kak-tree-sitter already owns it.
+    Adds `,t` to enter tree-sitter mode, where kak-tree-sitter's own 70
+    structural bindings live. No normal-mode keys are taken: Kakoune's
+    <a-o>/<a-i>/<a-n>/<a-p> keep their native meanings. Object mode is left
+    alone — kak-tree-sitter already owns it.
 } %{
     map global user t ': enter-user-mode tree-sitter<ret>' -docstring 'tree-sitter mode'
 
@@ -146,12 +131,8 @@ define-command kak-ide-keymap-treesitter-enable -docstring %{
     map global kak-ide-next C ': tree-sitter-text-objects comment.around search_next<ret>' -docstring 'next comment'
     map global kak-ide-prev C ': tree-sitter-text-objects comment.around search_prev<ret>' -docstring 'previous comment'
 
-    map global normal <a-o> ":tree-sitter-nav '""parent""'<ret>"                                  -docstring 'expand to parent node'
-    map global normal <a-i> ":tree-sitter-nav '""first_child""'<ret>"                             -docstring 'shrink to first child'
-    map global normal <a-n> ":tree-sitter-nav '{ ""next_sibling"": { ""cousin"": false } }'<ret>" -docstring 'next sibling node'
-    map global normal <a-p> ":tree-sitter-nav '{ ""prev_sibling"": { ""cousin"": false } }'<ret>" -docstring 'previous sibling node'
 
-    echo -markup "{Information}kak-ide: tree-sitter reachable via ,t and <a-o>/<a-i>/<a-n>/<a-p>"
+    echo -markup "{Information}kak-ide: tree-sitter reachable via ,t"
 }
 
 # ─── Git: expose what Kakoune's own git.kak already implements ───────────────
@@ -189,49 +170,10 @@ define-command kak-ide-keymap-git-enable -docstring %{
     echo -markup "{Information}kak-ide: git hunk nav bound (]c / [c), gutter auto-refreshes"
 }
 
-# ─── Full Helix-parity map (opt-in, Section 8 rule 5) ────────────────────────
+# ─── Modes used by the git bracket-nav above ─────────────────────────────────
 
-declare-user-mode kak-ide
 declare-user-mode kak-ide-next
 declare-user-mode kak-ide-prev
-
-map global kak-ide f  ': kak-ide-picker-files<ret>'             -docstring 'find file (project)'
-map global kak-ide F  ': kak-ide-picker-files-cwd<ret>'         -docstring 'find file (buffer dir)'
-map global kak-ide b  ': kak-ide-picker-buffers<ret>'           -docstring 'buffers'
-map global kak-ide g  ': kak-ide-picker-changed<ret>'           -docstring 'changed files (git)'
-map global kak-ide j  ': kak-ide-picker-jumps<ret>'             -docstring 'recent locations'
-map global kak-ide s  ': kak-ide-picker-symbols<ret>'           -docstring 'symbols (document)'
-map global kak-ide S  ': kak-ide-picker-symbols-workspace<ret>' -docstring 'symbols (workspace)'
-map global kak-ide d  ': kak-ide-picker-diagnostics<ret>'       -docstring 'diagnostics'
-map global kak-ide D  ': kak-ide-picker-diagnostics<ret>'       -docstring 'diagnostics (workspace — same picker; kakoune-lsp has no document-scoped variant)'
-map global kak-ide '/' ': kak-ide-picker-grep<ret>'             -docstring 'global search'
-map global kak-ide '?' ': kak-ide-picker-palette<ret>'          -docstring 'command palette'
-map global kak-ide "'" ': kak-ide-picker-last<ret>'             -docstring 'last picker'
-map global kak-ide e  ': kaktree-toggle<ret>'                   -docstring 'file explorer'
-map global kak-ide '.' ': kaktree-focus<ret>'                   -docstring 'focus file explorer'
-map global kak-ide r  ': kak-ide-rename<ret>'                   -docstring 'rename symbol (reviewable)'
-map global kak-ide a  ': lsp-code-actions<ret>'                 -docstring 'code actions'
-map global kak-ide k  ': lsp-hover<ret>'                        -docstring 'hover docs'
-map global kak-ide '%' ': kak-ide-replace<ret>'                 -docstring 'project-wide find & replace'
-map global kak-ide v  ': kak-ide-picker-files-vsplit<ret>'      -docstring 'find file -> open right'
-map global kak-ide h  ': kak-ide-picker-files-hsplit<ret>'      -docstring 'find file -> open below'
-
-# With `<space>` as the leader, this mode — not `user` — is what the leader
-# actually opens, so anything that lived only on `,` becomes unreachable. These
-# carry over the everyday commands from kakrc's `user` mode. They are the same
-# actions on the same letters, so muscle memory is unaffected either way.
-#
-# `n`/`p` for buffer navigation also answer kakoune_bugs.md item 3 (Helix's
-# gn/gp); `d` there is Kakoune's delete-buffer, answering item 1.
-
-map global kak-ide w ': write<ret>'            -docstring 'write (save)'
-map global kak-ide W ': write-all<ret>'        -docstring 'write all buffers'
-map global kak-ide q ': quit<ret>'             -docstring 'quit'
-map global kak-ide c ': comment-line<ret>'     -docstring 'toggle line comment'
-map global kak-ide '=' ': format<ret>'         -docstring 'format buffer'
-map global kak-ide n ': buffer-next<ret>'      -docstring 'next buffer'
-map global kak-ide p ': buffer-previous<ret>'  -docstring 'previous buffer'
-map global kak-ide B ': kak-ide-close-buffer<ret>' -docstring 'close buffer (asks if modified)'
 
 # fzf.kak's own delete-buffer picker calls plain `delete-buffer`, which fails on
 # a modified buffer — and the fzf window has already closed by then, so the
@@ -251,28 +193,4 @@ $buffers"
 <ret>: delete selected buffer (asks if modified).'"
         printf "%s\n" "fzf -kak-cmd %{kak-ide-close-buffer} -multiple-cmd %{kak-ide-close-buffer} -items-cmd %{printf \"%s\n\" \"$buffers\"} -fzf-args %{-m --expect ${kak_opt_fzf_window_map:-ctrl-w} ${additional_flags:-}}"
     }}
-}
-map global kak-ide l ': enter-user-mode lsp<ret>'         -docstring 'LSP mode'
-map global kak-ide t ': enter-user-mode tree-sitter<ret>' -docstring 'tree-sitter mode'
-map global kak-ide z ': fzf-mode<ret>'         -docstring 'fzf menu (all pickers)'
-map global kak-ide '?' ': kak-ide-picker-palette<ret>'    -docstring 'command palette'
-
-define-command kak-ide-keymap-helix-enable -docstring %{
-    kak-ide-keymap-helix-enable: put the Section 8 picker table on <space>
-
-    Relocates Kakoune's own <space> (drop all but the main selection) to
-    <a-space>, which is otherwise unbound. Reverse with
-    kak-ide-keymap-helix-disable.
-} %{
-    map global normal <space>   ': enter-user-mode kak-ide<ret>' -docstring 'kak-ide leader'
-    map global normal <a-space> '<space>'                        -docstring 'drop all but main selection'
-    echo -markup "{Information}kak-ide: <space> is the leader; Kakoune's <space> moved to <a-space>"
-}
-
-define-command kak-ide-keymap-helix-disable -docstring %{
-    kak-ide-keymap-helix-disable: give <space> back to Kakoune
-} %{
-    unmap global normal <space>
-    unmap global normal <a-space>
-    echo -markup "{Information}kak-ide: <space> restored to Kakoune"
 }
