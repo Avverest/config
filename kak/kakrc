@@ -178,10 +178,6 @@ try %{
 
     # ── Keybindings ──
     map global user l ':enter-user-mode lsp<ret>'        -docstring 'LSP mode'
-    # Symbol pickers — the "find by symbol" counterpart to the file pickers.
-    # (kak-tree-sitter has no picker of its own; symbols come from the LSP.)
-    map global user s '<esc>:lsp-document-symbol<ret>'   -docstring 'symbols in this file'
-    map global user S '<esc>:lsp-workspace-symbol-incr<ret>' -docstring 'symbols in project'
     map global goto d '<esc>:lsp-definition<ret>'        -docstring 'definition'
     map global goto r '<esc>:lsp-references<ret>'        -docstring 'references'
     map global goto y '<esc>:lsp-type-definition<ret>'   -docstring 'type definition'
@@ -355,24 +351,17 @@ plug "andreyorst/fzf.kak" config %{
     set-option global fzf_preview_width  '65%'
     set-option global fzf_preview_height '65%'   ;# used if pos is ever set to top/bottom
 
-    # WINDOW SIZE — fzf runs in a new terminal, and Kakoune's default
-    # `windowing_placement` is "window", i.e. a whole separate WezTerm window.
-    # Split the current pane instead and give fzf 70% of it, so the picker is
-    # large and stays in context. Falls back to Kakoune's own `terminal` when
-    # not running under WezTerm.
-    define-command -hidden -params 1.. kak-ide-fzf-terminal %{
-        evaluate-commands %sh{
-            if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
-                wezterm cli split-pane --bottom --percent 70 \
-                    --cwd "${kak_client_env_PWD:-$PWD}" \
-                    --pane-id "${kak_client_env_WEZTERM_PANE}" \
-                    -- "$@" >/dev/null 2>&1
-            else
-                printf 'terminal %%arg{@}\n'
-            fi
-        }
-    }
-    set-option global fzf_terminal_command 'kak-ide-fzf-terminal'
+    # WINDOW SIZE.
+    # Under tmux, fzf.kak does NOT use `fzf_terminal_command` at all: it builds
+    # a `tmux split-window` itself so it can pass a size, which `terminal`
+    # cannot take (see the comment at fzf.kak/rc/fzf.kak:235). So the size comes
+    # from its own options, not from a wrapper command — an earlier wezterm
+    # wrapper here was dead code under tmux for exactly this reason.
+    #
+    # Two heights, because fzf.kak picks between them: the preview one wins
+    # whenever a picker was invoked with -preview, which is all of ours.
+    set-option global fzf_preview_tmux_height '70%'
+    set-option global fzf_tmux_height         '40%'
 
     # Shell snippet shared by the project-scoped commands below: sets $root to
     # the VCS root of the current buffer, falling back to a marker file, then

@@ -77,43 +77,7 @@ define-command kak-ide-picker-grep -docstring %{
     fzf-project-grep
 }
 
-# ─── Open in a split ─────────────────────────────────────────────────────────
-#
-# Plan §7.4 wants pickers to open a result in an hsplit/vsplit. fzf.kak provides
-# `fzf-vertical`/`fzf-horizontal` for this, but they shell out to
-# `tmux-terminal-*` and so only work inside tmux. Kakoune has no internal splits
-# of its own — a "split" is a second client in a second terminal pane — so the
-# terminal has to provide it either way.
-#
-# Rather than take a tmux dependency for this one feature, do it natively: spawn
-# a new Kakoune client on the same session in a WezTerm pane. Same session means
-# the two panes share buffers, registers and the LSP servers already running.
-# Falls back to Kakoune's own `terminal` elsewhere.
-
-define-command -params 1 kak-ide-open-vsplit -docstring %{
-    kak-ide-open-vsplit <file>: open <file> in a new pane to the right
-} %{ kak-ide-open-split-impl right %arg{1} }
-
-define-command -params 1 kak-ide-open-hsplit -docstring %{
-    kak-ide-open-hsplit <file>: open <file> in a new pane below
-} %{ kak-ide-open-split-impl bottom %arg{1} }
-
-define-command -hidden -params 2 kak-ide-open-split-impl %{
-    evaluate-commands %sh{
-        dir="--$1"; file="$2"
-        if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
-            wezterm cli split-pane "$dir" --percent 50 \
-                --cwd "${kak_client_env_PWD:-$PWD}" \
-                --pane-id "${kak_client_env_WEZTERM_PANE}" \
-                -- kak -c "$kak_session" "$file" >/dev/null 2>&1
-        else
-            # No WezTerm: a new client wherever Kakoune's windowing module puts
-            # it, which still shares the session.
-            printf 'try %%{ terminal kak -c %%{%s} %%{%s} } catch %%{ edit -existing %%{%s} }\n' \
-                "$kak_session" "$file" "$file"
-        fi
-    }
-}
+# (split-opening moved to splits.kak — tmux-backed)
 
 define-command kak-ide-picker-files-vsplit -docstring %{
     kak-ide-picker-files-vsplit: find a file and open it in a pane to the right
