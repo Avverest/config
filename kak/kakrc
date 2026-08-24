@@ -95,11 +95,6 @@ hook global WinSetOption filetype=(?:json|markdown|yaml|toml) %{
     hook -once -always window WinSetOption filetype=.* %{ remove-hooks window expandtab }
 }
 
-hook global WinSetOption filetype=go %{
-    set-option window tabstop 4
-    set-option window indentwidth 0   ;# indent with real tabs
-    set-option window aligntab true
-}
 
 # Format on save for the non-kak-ide languages. A failed formatter (e.g. a
 # syntax error mid-edit) leaves the buffer untouched.
@@ -113,10 +108,6 @@ hook global BufSetOption filetype=(?:json|markdown|yaml) %{
     hook buffer -group format-on-save BufWritePre .* format
 }
 
-hook global BufSetOption filetype=go %{
-    set-option buffer formatcmd gofmt
-    hook buffer -group format-on-save BufWritePre .* format
-}
 
 # Lua: stylua wins over the language server's formatter when it is installed.
 # kak-ide sets no formatcmd for Lua, so this simply fills that slot.
@@ -147,31 +138,7 @@ try %{
     # plugins/kak-ide/rc/languages.kak, and Biome/ESLint/Prettier are attached
     # per project by plugins/kak-ide/rc/tooling.kak. kak-ide also enables LSP
     # per window (WinCreate), so no global `lsp-enable` is needed here.
-    # Only the languages kak-ide does not cover are configured below.
 
-    # ── Go ──
-    hook global BufSetOption filetype=go %{
-        set-option buffer lsp_servers %{
-            [gopls]
-            root_globs = ["go.mod", "go.work", ".git"]
-            settings_section = "gopls"
-            [gopls.settings.gopls]
-            "hints.assignVariableTypes" = true
-            "usePlaceholders"           = true
-            "staticcheck"               = true
-        }
-        # Optional: let gopls organize imports on save instead of plain gofmt
-        # hook buffer -group go-imports BufWritePre .* %{ lsp-code-action-sync '(?i)organize imports' }
-    }
-
-    # ── Markdown (optional; requires `marksman`) ──
-    hook global BufSetOption filetype=markdown %{
-        set-option buffer lsp_servers %{
-            [marksman]
-            root_globs = [".marksman.toml", ".git"]
-            args = ["server"]
-        }
-    }
 
     # ── Inlay hints (inferred types, param names). Comment out if too noisy. ──
     lsp-inlay-hints-enable global
@@ -299,7 +266,10 @@ evaluate-commands %sh{
         echo "echo -debug 'kak-tree-sitter not found on PATH: tree-sitter highlighting disabled'"
     fi
 }
-colorscheme kanagawa        # uncomment once a tree-sitter theme is installed
+# Only themes that define tree-sitter faces (ts_*) are kept in colors/ — with
+# any other theme kak-tree-sitter still parses, but every token renders in the
+# default face and the file looks unhighlighted. Switch with change-theme.pl.
+colorscheme night-owl
 # Keymap modules (kak-ide). These surface capability that is already installed
 # and was otherwise unreachable, without taking any key Kakoune uses itself:
 #   treesitter — kak-tree-sitter's 70 structural bindings, reached via `,t`
@@ -483,8 +453,6 @@ map global user / ': fzf-project-grep<ret>'                  -docstring 'search 
 map global user F ': require-module fzf-file; fzf-file buffile-dir<ret>' -docstring 'find file next to current buffer'
 map global user b ': require-module fzf-buffer; fzf-buffer<ret>'         -docstring 'switch buffer (fzf)'
 map global user r ': require-module fzf-recent; fzf-recent<ret>'         -docstring 'recent files'
-map global user P ': require-module fzf-project; fzf-project<ret>'       -docstring 'switch project (saved list)'
-map global user z ': fzf-mode<ret>'                                      -docstring 'fzf menu (all pickers)'
 # ,l (LSP menu) is added in the LSP section above when kak-lsp is installed.
 
 # A one-key cheat sheet of core Kakoune motions, for when the muscle memory
@@ -503,16 +471,26 @@ define-command new-user-tips -docstring 'show a quick Kakoune cheat sheet' %{
 Multiple cursors (Kakoune's superpower):
   C            add a cursor on the line below
   <a-s>        split the selection into one cursor per line
-  <space>      drop every selection except the main one
+  <a-space>    drop every selection except the main one
 
-Fuzzy pickers (project = the buffer's git root):
+Finding things (project = the buffer's git root):
   ,f  <c-p>    find file in project   ,/   search project contents
   ,b           switch buffer          ,r   recent files
-  ,F           files beside this one  ,P   switch project
-  ,s  ,S       symbols: this file / whole project
-  ,z           the full fzf menu (git files, cd, buffer search, ...)
+  ,F           files beside this one  ,e   file explorer
+
+Splits (tmux panes sharing this session):
+  ,sv  ,ss     split right / below    ,st  new tmux window
+  ,sh ,sj ,sk ,sl   move focus left / down / up / right
+  ,sq  ,so     close this pane / close all others
+
+Code (needs a language server):
+  gd  gr  gy   goto definition / references / type definition
+  ,l           LSP menu (hover, rename, diagnostics, ...)
+  ,a           code actions           ,=   format buffer
+  ]d  [d       next / previous diagnostic
+  ]c  [c       next / previous git change
 
 Discover more as you go:
-  ,            this leader menu       g  goto menu       v  view menu
+  ,  <space>   this leader menu       g  goto menu       v  view menu
   <a-i>/<a-a>  object menu            :doc  the manual   :doc keys  key list}
 }

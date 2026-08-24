@@ -23,7 +23,6 @@
 hook global BufCreate .*[.]jsx %{ set-option buffer filetype jsx }
 hook global BufCreate .*[.]tsx %{ set-option buffer filetype tsx }
 hook global BufCreate .*[.]es6 %{ set-option buffer filetype javascript }
-hook global BufCreate .*[.](xhtml|shtml) %{ set-option buffer filetype html }
 hook global BufCreate .*[.]rockspec %{ set-option buffer filetype lua }
 
 # ─── JSX / TSX: pieces Kakoune has no filetype module for ─────────────────────
@@ -73,52 +72,15 @@ hook -group kak-ide-tsx-highlight global WinSetOption filetype=tsx %{
 hook global BufSetOption filetype=jsx %{ set-option buffer lsp_language_id javascriptreact }
 hook global BufSetOption filetype=tsx %{ set-option buffer lsp_language_id typescriptreact }
 
-# ─── Indentation (plan Section 6: Rust 4 spaces, everything else 2) ───────────
+# ─── Indentation: 2 spaces across the board ──────────────────────────────────
 
-hook global BufSetOption filetype=rust %{
-    set-option buffer tabstop 4
-    set-option buffer indentwidth 4
-}
-
-hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|html|css|scss|less|json|lua) %{
+hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|json|lua) %{
     set-option buffer tabstop 2
     set-option buffer indentwidth 2
 }
 
 # ─── Language servers ─────────────────────────────────────────────────────────
 
-# Rust — settings transcribed from plan Section 6.
-hook global BufSetOption filetype=rust %{
-    set-option buffer lsp_servers %{
-        [rust-analyzer]
-        root_globs = ["Cargo.toml"]
-        single_instance = true
-        [rust-analyzer.experimental]
-        commands.commands = ["rust-analyzer.runSingle"]
-        hoverActions = true
-        [rust-analyzer.settings.rust-analyzer]
-        check.command = "clippy"
-        files.watcher = "server"
-        inlayHints.bindingModeHints.enable = false
-        inlayHints.closingBraceHints.minLines = 10
-        inlayHints.closureReturnTypeHints.enable = "with_block"
-        inlayHints.discriminantHints.enable = "fieldless"
-        inlayHints.lifetimeElisionHints.enable = "skip_trivial"
-        [rust-analyzer.symbol_kinds]
-        Constant = "const"
-        Enum = "enum"
-        EnumMember = ""
-        Field = ""
-        Function = "fn"
-        Interface = "trait"
-        Method = "fn"
-        Module = "mod"
-        Object = ""
-        Struct = "struct"
-        TypeParameter = "type"
-        Variable = "let"
-    }
-}
 
 # TypeScript / JavaScript / JSX / TSX.
 # Lint and format servers are NOT declared here — `tooling.kak` appends Biome or
@@ -205,55 +167,6 @@ hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx) %{
     }
 }
 
-# CSS / SCSS / LESS — SCSS and LESS ride along on the same server for free.
-hook global BufSetOption filetype=(?:css|scss|less) %{
-    set-option buffer lsp_servers %{
-        [vscode-css-language-server]
-        root_globs = ["package.json", ".git", ".hg"]
-        args = ["--stdio"]
-        settings_section = "_"
-        [vscode-css-language-server.settings._]
-        provideFormatter = true
-        handledSchemas = ["file"]
-        [vscode-css-language-server.settings]
-        css.validate = true
-        css.format.enable = true
-        css.validProperties = []
-        scss.validate = true
-        scss.format.enable = true
-        scss.validProperties = []
-        less.validate = true
-        less.format.enable = true
-        less.validProperties = []
-    }
-}
-
-# HTML — embedded CSS/JS validation on, which is what makes it useful in
-# template-heavy projects. `superhtml` is a stricter optional linter; it is not
-# installed here, so it is left out rather than configured to fail on startup.
-hook global BufSetOption filetype=html %{
-    set-option buffer lsp_servers %{
-        [vscode-html-language-server]
-        root_globs = ["package.json", ".git", ".hg"]
-        args = ["--stdio"]
-        settings_section = "_"
-        [vscode-html-language-server.settings._]
-        provideFormatter = true
-        [vscode-html-language-server.settings]
-        embeddedLanguages.css = true
-        embeddedLanguages.javascript = true
-        html.autoClosingTags = true
-        html.format.enable = true
-        html.mirrorCursorOnMatchingTag = true
-        html.validate.scripts = true
-        html.validate.styles = true
-        css.validate = true
-        css.format.enable = true
-        css.validProperties = []
-        javascript.format.enable = true
-        javascript.validate.enable = true
-    }
-}
 
 # Lua — hint settings transcribed from plan Section 6.
 hook global BufSetOption filetype=lua %{

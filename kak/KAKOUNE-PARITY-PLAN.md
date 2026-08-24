@@ -1,3 +1,25 @@
+> **STATUS (2026-08-24): completed, then deliberately reduced.**
+>
+> All six phases below were implemented. The config was then cut back to six
+> features actually in use — project file search, project text search, LSP for
+> JS/TS/JSX/TSX and Lua (with Biome/ESLint/Prettier), tmux-backed splits,
+> keybinding discovery, and syntax highlighting.
+>
+> Removed on purpose, not lost: the DAP client (phase 5), project-wide
+> rename/replace (7.1/7.2), goto-file/import resolution (7.3), the picker core
+> and command palette (7.4), workspace trust, and LSP config for Rust, HTML,
+> CSS, Go and Markdown. Those languages keep tree-sitter highlighting.
+>
+> The Helix keymap (§8) was reverted entirely: it had taken <a-i>, <a-o>,
+> <a-n> and <a-p>, which Kakoune uses for object selection, open-line-below,
+> select-previous-match and paste-after. See the git history around
+> "restore native Kakoune keybindings" for the reasoning.
+>
+> Everything below is kept as the original design record. It describes the
+> full build, not the current config.
+
+---
+
 # Bringing Helix's Feature Set to Kakoune — Implementation Plan
 
 **Audience:** This document is an execution plan for an autonomous coding agent

@@ -47,9 +47,9 @@ define-command -hidden kak-ide-detect-tooling %{
 
         # What each tool actually covers (plan §6.1 item 4):
         #   Biome     — formats JS/TS/JSX/TSX/JSON and (since 1.8) CSS.
-        #               Lints JS/TS/JSX/TSX/JSON only. No HTML support at all.
+        #               Lints JS/TS/JSX/TSX/JSON only.
         #   ESLint    — lints the JS family only.
-        #   Prettier  — formats everything here, HTML included.
+        #   Prettier  — formats everything here.
         case "$kak_opt_filetype" in
             javascript|typescript|jsx|tsx|json)
                 biome_fmt=yes; biome_lint=yes; eslint_ok=yes ;;
@@ -170,14 +170,8 @@ TOML
     }
 }
 
-# Languages kak-ide configures but §6.1's JS toolchain does not apply to. Report
+# Lua: kak-ide configures it, but §6.1's JS toolchain does not apply. Report
 # honestly rather than leaving the default "none", which reads like a failure.
-hook global BufSetOption filetype=rust %{
-    set-option buffer kak_ide_formatter lsp
-    set-option buffer kak_ide_linter lsp
-    set-option buffer kak_ide_tooling %{fmt:rustfmt lint:clippy}
-}
-
 hook global BufSetOption filetype=lua %{
     evaluate-commands %sh{
         if command -v stylua >/dev/null 2>&1; then
@@ -193,7 +187,7 @@ hook global BufSetOption filetype=lua %{
 
 # Run detection for the languages Section 6.1 covers. This must be registered
 # after languages.kak's `lsp_servers` hooks so the append lands on top of them.
-hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|css|scss|less|html|json) %{
+hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|css|scss|less|json) %{
     kak-ide-detect-tooling
 }
 
@@ -215,7 +209,7 @@ define-command kak-ide-format -docstring %{
     }
 }
 
-hook global BufSetOption filetype=(?:rust|javascript|typescript|jsx|tsx|css|scss|less|html|json|lua) %{
+hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|css|scss|less|json|lua) %{
     hook buffer -group kak-ide-format BufWritePre .* %{
         evaluate-commands %sh{
             [ "$kak_opt_kak_ide_format_on_save" = true ] && echo 'kak-ide-format'
