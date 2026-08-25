@@ -1,35 +1,27 @@
 return {
-  gogh = {
-    light = {},
-    dark = {
+  light = {
+      -- base
+      tokyonight_day = 'tokyonight_day',
+      mexico = 'Mexico Light (base16)',
+  },
+  dark = {
+      -- gogh
       trmnx_dark_gogh = 'Terminix Dark (Gogh)',
       tokyo_night_storm_gogh = 'Tokyo Night Storm (Gogh)',
       belafonte_night = 'Belafonte Night (Gogh)',
       azu = 'Azu (Gogh)',
       bim = 'Bim (Gogh)',
-    },
-  },
-  base16 = {
-    light = {},
-    dark = {
+
+      -- base16
       monochrome = 'Grayscale Dark (base16)',
       atelier_cave = 'Atelier Cave (base16)',
       atelier_plateau = 'Atelier Plateau (base16)',
-    },
-  },
-  sexy = {
-    light = {},
-    dark = {
+
+      -- sexy
       bitmute = 'Bitmute (terminal.sexy)',
       ashes = 'Ashes (dark) (terminal.sexy)',
-    },
-  },
-  base = {
-    light = {
-      tokyonight_day = 'tokyonight_day',
-      mexico = 'Mexico Light (base16)',
-    },
-    dark = {
+
+      -- base
       tokyo_night_moon = 'Tokyo Night Moon',
       catppuccin_mocha = 'Catppuccin Mocha',
       challenger_deep = 'ChallengerDeep',
@@ -39,7 +31,6 @@ return {
       arthur = 'Arthur', -- favourite
       ayu = 'ayu',
       banana = 'Banana Blueberry'
-    },
   },
   new = 'Breath (Gogh)',
 }

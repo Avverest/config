@@ -1,8 +1,8 @@
 # LIGHT 
-# theme = 'onelight'
+# theme = 'zed_onelight'
 # theme = 'spacebones_light'
 # theme = 'github_light'
-# theme = 'cyan_light'
+theme = 'cyan_light'
 # theme = 'everforest_light'
 
 # DARK
@@ -12,7 +12,7 @@
 # theme = 'amberwood'
 # theme = 'ayu_dark'
 # theme = 'autumn_night'
-theme = 'kanagawa'
+# theme = 'kanagawa'
 # theme = 'everforest_dark'
 
 
@@ -21,8 +21,7 @@ true-color = true
 line-number = 'relative'
 popup-border = 'all'
 end-of-line-diagnostics = "hint"
-# gutters = ["diff", "diagnostics", "line-numbers", "spacer"]
-gutters = ["diff", "line-numbers", "spacer"]
+gutters = ["diagnostics", "spacer", "line-numbers", "spacer", "diff"]
 bufferline = 'never'
 editor-config = true
 cursorline = true
@@ -54,6 +53,14 @@ nbsp = "all"
 nnbsp = "all"
 newline = "all"
 
+[editor.whitespace.characters]
+space = "·"
+nbsp = "⍽"
+nnbsp = "␣"
+tab = "→"
+newline = "⏎"
+tabpad = "·"
+
 [editor.indent-guides]
 render = true
 skip-levels = 1
@@ -64,8 +71,8 @@ cursor-line = "hint"
 other-lines = "disable"
 
 [editor.statusline]
-left = ["mode", "spinner", "file-name"]
-center = []
+left = ["mode", "spinner"]
+center = ["file-name", "read-only-indicator", "file-modification-indicator"]
 right = ["diagnostics", "selections", "position", "file-encoding", "file-line-ending", "file-type"]
 separator = "│"
 mode.normal = "NORMAL"

@@ -7,7 +7,8 @@ local config = wezterm.config_builder()
 
 local font = fonts.monitor(fonts.lilex, 400)
 
-local dark = themes.gogh.dark.azu
+local dark = themes.dark.azu
+local light = themes.light.mexico
 
 config = {
 	automatically_reload_config = true,
@@ -15,7 +16,7 @@ config = {
 	font = wezterm.font(font.family, { weight = font.weight }),
 	font_size = font.size,
 	line_height = font.height,
-	color_scheme = dark,
+	color_scheme = light,
 
 	macos_window_background_blur = 10,
 	window_background_opacity = 1,

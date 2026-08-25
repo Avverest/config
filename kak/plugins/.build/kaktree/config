@@ -1,7 +1,5 @@
 try %{ 
 
-    # kaktree declares its options inside `provide-module kaktree`, so they do
-    # not exist until the module is required.
     require-module kaktree
 
     hook global WinSetOption filetype=kaktree %{
@@ -9,25 +7,9 @@ try %{
         remove-highlighter buffer/matching
         remove-highlighter buffer/wrap
         remove-highlighter buffer/show-whitespaces
-        # kaktree draws its own tree indentation, so the indent guides would
-        # sit on top of it. The highlighter is added per window, hence window/.
         try %{ remove-highlighter window/indent-guides }
     }
 
-    # kaktree opens in a SEPARATE Kakoune client, and it only knows two ways to
-    # create one: `tmux split-window` when $TMUX is set, or `$termcmd`. With
-    # neither (WezTerm, no tmux) its %sh block matches no branch and exits
-    # silently — `kaktree-toggle` reports success, flips its state, and no window
-    # ever appears. Nothing fails, nothing is logged.
-    #
-    # `termcmd` is kaktree's escape hatch, but it is NOT a built-in Kakoune
-    # option: nothing declares it, and `%opt{termcmd}` errors with "option not
-    # found", so kaktree's `${kak_opt_termcmd}` was empty no matter what.
-    # Declare it, then point it at a wrapper.
-    #
-    # Calling convention: kaktree passes the whole command as ONE argument
-    # (`$termcmd "sh -c '...'"`), so the wrapper hands that single string to a
-    # shell rather than splitting it into argv.
     declare-option -docstring "command used to spawn a terminal for kaktree" \
         str termcmd 'kak-ide-termcmd'
 
@@ -44,15 +26,6 @@ try %{
         }
     }
 
-    # kaktree tracks whether the tree is up in `kaktree__onscreen`, but nothing
-    # reconciles that with reality. Close the pane by hand and the flag stays
-    # true with no client behind it; the next toggle runs
-    # `evaluate-commands -client kaktreeclient quit` and fails with
-    # "no such client: 'kaktreeclient'", leaving the state stuck for good.
-    #
-    # Reimplemented rather than wrapped, deliberately: `alias` resolves at CALL
-    # time, so `alias orig cmd` + `define-command -override cmd` makes the
-    # wrapper call itself until Kakoune reports "maximum nested command depth".
     define-command -override -docstring "kaktree-toggle: Toggle kaktree window on and off" \
     kaktree-toggle %{ evaluate-commands %sh{
         : "$kak_opt_kaktreeclient" "$kak_quoted_client_list" \
@@ -66,10 +39,6 @@ try %{
                            evaluate-commands -client %opt{kaktreeclient} quit
                            set-option global kaktree__onscreen false"
         else
-            # Off-screen, never opened, or the client vanished behind our back —
-            # same recovery in every case: clear the stale flag and open. The
-            # flag must be false BEFORE kaktree--display runs, because its first
-            # line is `[ "$kak_opt_kaktree__onscreen" = "true" ] && exit`.
             printf "%s\n" "evaluate-commands kaktree-enable
                            set-option global kaktree__onscreen false
                            hook -group kaktree-exit global ClientClose ${kak_opt_kaktreeclient} %{ kaktree-disable }

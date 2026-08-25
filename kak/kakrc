@@ -174,7 +174,7 @@ evaluate-commands %sh{
         echo "echo -debug 'kak-tree-sitter not found on PATH: tree-sitter highlighting disabled'"
     fi
 }
-colorscheme night-owl
+
 kak-ide-keymap-treesitter-enable
 kak-ide-keymap-git-enable
 
