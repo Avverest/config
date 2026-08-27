@@ -7,7 +7,6 @@ try %{
         remove-highlighter buffer/matching
         remove-highlighter buffer/wrap
         remove-highlighter buffer/show-whitespaces
-        try %{ remove-highlighter window/indent-guides }
     }
 
     declare-option -docstring "command used to spawn a terminal for kaktree" \

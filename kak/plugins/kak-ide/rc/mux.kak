@@ -1,16 +1,22 @@
-
 # ─────────────────────────────────────────────────────────────────────────────
-# Terminal-multiplexer abstraction.
+# Terminal-multiplexer glue.
 #
-# Everything that opens a pane, moves focus or spawns a window goes through
-# here. Two backends are supported and picked per client at call time:
+# Kakoune's own `rc/windowing/` provides backend detection and the
+# `terminal` / `new` / `focus` abstraction, with wezterm and tmux modules that
+# already read the pane id from the CLIENT's environment. That is the whole
+# contract splits.kak needs, so it is used directly rather than reimplemented.
 #
-#   wezterm  — `wezterm cli`, when the CLIENT's env has WEZTERM_PANE
-#   tmux     — Kakoune's built-in tmux-terminal-* commands
+# What remains here is only what the builtin modules do not express:
 #
-# The pane id is always read from `kak_client_env_*`, never from the server's
-# own environment: one Kakoune session can have clients in several panes, and
-# the server env only reflects whichever one happened to start it.
+#   * a sized panel      — `terminal` takes no width/height percentage
+#   * directional focus  — builtin `focus` targets a Kakoune client, not the
+#                          pane in a given direction
+#   * zoom, kill-others  — no builtin equivalent
+#
+# Those still need the raw backend, so the per-client detection below is kept
+# for them alone. It reads `kak_client_env_*`, never the server's own
+# environment: one session can have clients in several panes, and the server
+# env only reflects whichever one happened to start it.
 # ─────────────────────────────────────────────────────────────────────────────
 
 declare-option -docstring %{
@@ -48,19 +54,20 @@ define-command kak-ide-mux-status -docstring %{
             tmux)    detail="pane ${kak_client_env_TMUX_PANE:-?}" ;;
             *)       detail="start Kakoune inside wezterm or tmux" ;;
         esac
-        printf 'info -title %%{kak-ide mux} %%{backend: %s\n%s}\n' \
-            "$kak_opt_kak_ide_mux" "$detail"
+        printf 'info -title %%{kak-ide mux} %%{backend:   %s\n%s\nwindowing: %s}\n' \
+            "$kak_opt_kak_ide_mux" "$detail" "${kak_opt_windowing_module:-(none)}"
     }
 }
 
-# ─── Primitives ──────────────────────────────────────────────────────────────
+# ─── Sized panels ────────────────────────────────────────────────────────────
 #
-# kak-ide-mux-split <right|below|left|above> <percent> <shell-command>
+# kak-ide-mux-panel <right|below|left|above> <percent> <shell-command>
 #
-# Runs <shell-command> via `sh -c` in a new pane. The command is passed as a
-# single argument, which is also the contract kaktree expects from `termcmd`.
+# Runs <shell-command> via `sh -c` in a new pane of the given size. Kakoune's
+# `terminal` covers the unsized case; this exists only because neither the
+# wezterm nor the tmux module accepts a size percentage.
 
-define-command -hidden -params 3 kak-ide-mux-split %{
+define-command -hidden -params 3 kak-ide-mux-panel %{
     kak-ide-mux-guard
     evaluate-commands %sh{
         dir="${kak_buffile%/*}"
@@ -73,7 +80,7 @@ define-command -hidden -params 3 kak-ide-mux-split %{
                     below) side=--bottom ;;
                     left)  side=--left ;;
                     above) side=--top ;;
-                    *)     printf "fail 'kak-ide-mux-split: bad direction %%{%s}'\n" "$1"; exit ;;
+                    *)     printf "fail 'kak-ide-mux-panel: bad direction %%{%s}'\n" "$1"; exit ;;
                 esac
                 wezterm cli split-pane "$side" --percent "$2" \
                     --pane-id "$kak_client_env_WEZTERM_PANE" \
@@ -85,7 +92,7 @@ define-command -hidden -params 3 kak-ide-mux-split %{
                     below) axis=-v; before= ;;
                     left)  axis=-h; before=-b ;;
                     above) axis=-v; before=-b ;;
-                    *)     printf "fail 'kak-ide-mux-split: bad direction %%{%s}'\n" "$1"; exit ;;
+                    *)     printf "fail 'kak-ide-mux-panel: bad direction %%{%s}'\n" "$1"; exit ;;
                 esac
                 TMUX="$kak_client_env_TMUX" tmux split-window \
                     "$axis" $before -p "${2%%%*}" \
@@ -96,23 +103,10 @@ define-command -hidden -params 3 kak-ide-mux-split %{
     }
 }
 
-define-command -hidden -params 1 kak-ide-mux-window %{
-    kak-ide-mux-guard
-    evaluate-commands %sh{
-        dir="${kak_buffile%/*}"
-        [ -d "$dir" ] || dir="${kak_client_env_PWD:-$PWD}"
-        case "$kak_opt_kak_ide_mux" in
-            wezterm)
-                wezterm cli spawn --pane-id "$kak_client_env_WEZTERM_PANE" \
-                    --cwd "$dir" -- sh -c "$1" >/dev/null 2>&1
-                ;;
-            tmux)
-                TMUX="$kak_client_env_TMUX" tmux new-window \
-                    -c "$dir" sh -c "$1" >/dev/null 2>&1
-                ;;
-        esac
-    }
-}
+# ─── Directional focus ───────────────────────────────────────────────────────
+#
+# Builtin `focus` takes a Kakoune client name; there is no way to say "the pane
+# to my left". Both backends can, so go to them directly.
 
 define-command -hidden -params 1 kak-ide-mux-focus %{
     kak-ide-mux-guard
@@ -137,6 +131,8 @@ define-command -hidden -params 1 kak-ide-mux-focus %{
         esac
     }
 }
+
+# ─── Killing and zooming ─────────────────────────────────────────────────────
 
 define-command -hidden kak-ide-mux-kill-others %{
     kak-ide-mux-guard
@@ -219,26 +215,10 @@ declare-option -docstring %{
 } int kak_ide_fzf_height 40
 
 define-command -hidden -params 1 kak-ide-fzf-term %{
-    kak-ide-mux-guard
-    evaluate-commands %sh{
-        case "$kak_opt_kak_ide_mux" in
-            wezterm)
-                wezterm cli split-pane --bottom --percent "$kak_opt_kak_ide_fzf_height" \
-                    --pane-id "$kak_client_env_WEZTERM_PANE" \
-                    --cwd "${kak_client_env_PWD:-$PWD}" \
-                    -- sh -c "$1" >/dev/null 2>&1
-                ;;
-            tmux)
-                TMUX="$kak_client_env_TMUX" tmux split-window -v \
-                    -t "${kak_client_env_TMUX_PANE}" \
-                    -p "$kak_opt_kak_ide_fzf_height" \
-                    sh -c "$1" >/dev/null 2>&1
-                ;;
-        esac
-    }
+    kak-ide-mux-panel below %opt{kak_ide_fzf_height} %arg{1}
 }
 
 # kaktree calls this as `${kak_opt_termcmd} "sh -c '...'"` — one argument.
 define-command -hidden -params 1.. kak-ide-termcmd %{
-    kak-ide-mux-split left 25 %arg{1}
+    kak-ide-mux-panel left 25 %arg{1}
 }

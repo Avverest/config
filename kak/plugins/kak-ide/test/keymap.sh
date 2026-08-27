@@ -55,13 +55,14 @@ dupes() { # dupes <mode> — a key mapped twice in one mode means one was shadow
 
 echo "── the leader reaches the menus ─────────────────────────────"
 want normal ',' 'enter-user-mode user' ',   leader menu'
-want normal '<a-space>' 'drop all but main selection' '<a-space>  drop all but main selection'
+want normal '<a-space>' 'clear main selection' '<a-space>  clear main selection'
 
 echo
 echo "── leader bindings survive kakrc (load-order shadowing) ──────"
 want user a 'lsp-code-actions'          ',a  code actions'
 want user l 'enter-user-mode lsp'       ',l  LSP mode'
 want user e 'kaktree-toggle'            ',e  file explorer'
+want user E 'kak-ide-files'             ',E  file manager (yazi)'
 want user f 'fzf-project-files'         ',f  find file in project'
 want user t 'tree-sitter'               ',t  tree-sitter mode'
 want user s 'enter-user-mode kak-ide-split'    ',s  splits mode'
@@ -75,11 +76,23 @@ want kak-ide-split s 'kak-ide-split-below' 'split s  split below'
 dupes kak-ide-split
 dupes kak-ide-surround
 
+# ,b reaches kakoune-buffers' own mode. When the plugin is absent kakrc falls
+# back to a plain `:buffer ` prompt, so this also catches a failed install.
+want user b 'enter-user-mode buffers' ',b       buffers submode'
+want buffers d 'kak-ide-close-buffer' 'buffers d  delete (kak-ide, not plugin)'
+want buffers f 'fzf-buffer'           'buffers f  find (fzf, not plugin prompt)'
+want buffers D 'delete-buffers'       'buffers D  delete all'
+dupes buffers
+
 echo
 echo "── structural + unimpaired nav ──────────────────────────────"
-want object f 'lsp-object Function' '<a-i>f  function textobject'
-want object t 'lsp-object Class'    '<a-i>t  type textobject'
-want object c 'comment'             '<a-i>c  comment textobject'
+# kak-tree-sitter's text-objects.kak binds object f/t/a/T and is sourced after
+# the kak-lsp block in kakrc, so tree-sitter wins these. That is intended --
+# see kak-ide-keymap-treesitter-enable, which leaves object mode to it.
+want object f 'tree-sitter-object-text-objects function' '<a-i>f  function textobject'
+want object t 'tree-sitter-object-text-objects class'    '<a-i>t  type textobject'
+want object c 'tree-sitter-object-text-objects comment'  '<a-i>c  comment textobject'
+want object d 'lsp-diagnostic-object'                    '<a-i>d  diagnostic textobject'
 want kak-ide-next c 'git next-hunk'   ']c  next git hunk'
 want kak-ide-prev c 'git prev-hunk'   '[c  previous git hunk'
 want kak-ide-next d 'lsp-find-error'  ']d  next diagnostic'

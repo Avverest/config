@@ -3,6 +3,7 @@
 
 map global user a  ': lsp-code-actions<ret>'                -docstring 'code actions'
 map global user e  ': kaktree-toggle<ret>'                  -docstring 'file explorer'
+map global user E  ': kak-ide-files<ret>'                   -docstring 'file manager (yazi)'
 
 # ─── Closing buffers (kakoune_bugs.md item 1) ────────────────────────────────
 

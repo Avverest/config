@@ -1,8 +1,8 @@
 # LIGHT 
 # theme = 'zed_onelight'
-# theme = 'spacebones_light'
+theme = 'spacebones_light'
 # theme = 'github_light'
-theme = 'cyan_light'
+# theme = 'cyan_light'
 # theme = 'everforest_light'
 
 # DARK

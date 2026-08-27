@@ -1,14 +1,28 @@
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Splits — panes of the host multiplexer, each a client of this same session.
-# The backend (wezterm or tmux) is chosen by mux.kak; nothing here knows which.
+#
+# Creating a pane is Kakoune's builtin `new`, which runs
+# `terminal kak -c %val{session} -e <commands>` and so joins this session:
+# panes share buffers, registers and language servers. `terminal` dispatches on
+# `windowing_module` (detected at startup) and `windowing_placement`, so
+# nothing here needs to know whether the backend is wezterm or tmux.
+#
+# Focus, zoom and kill-others have no builtin equivalent and go through mux.kak.
 # ─────────────────────────────────────────────────────────────────────────────
 
 define-command -hidden -params 1 kak-ide-split-client %{
     evaluate-commands %sh{
-        # `kak -c` reuses the running server, so the new pane joins this session.
-        printf 'kak-ide-mux-split %s 50 %%{kak -c %s %s}\n' \
-            "$1" "$kak_session" "${kak_buffile:+\"$kak_buffile\"}"
+        [ -z "$kak_opt_windowing_module" ] &&
+            printf "fail 'kak-ide: no windowing module — run Kakoune inside wezterm or tmux'\n" &&
+            exit
+        # `new` forwards its arguments to the client as commands, so reopen the
+        # current file there. With no file (scratch), start the client bare.
+        if [ -n "$kak_buffile" ]; then
+            printf 'evaluate-commands %%{ set-option window windowing_placement %s; new edit -existing %%{%s} }\n' \
+                "$1" "$kak_buffile"
+        else
+            printf 'evaluate-commands %%{ set-option window windowing_placement %s; new }\n' "$1"
+        fi
     }
 }
 
@@ -16,45 +30,37 @@ define-command -hidden -params 1 kak-ide-split-client %{
 
 define-command kak-ide-split-right -docstring %{
     kak-ide-split-right: open a new client of this session in a pane to the right
-} %{ kak-ide-split-client right }
+} %{ kak-ide-split-client horizontal }
 
 define-command kak-ide-split-below -docstring %{
     kak-ide-split-below: open a new client of this session in a pane below
-} %{ kak-ide-split-client below }
+} %{ kak-ide-split-client vertical }
 
 define-command kak-ide-split-tab -docstring %{
     kak-ide-split-tab: open a new client of this session in a new window/tab
-} %{
-    kak-ide-mux-guard
-    evaluate-commands %sh{
-        printf 'kak-ide-mux-window %%{kak -c %s %s}\n' \
-            "$kak_session" "${kak_buffile:+\"$kak_buffile\"}"
-    }
-}
+} %{ kak-ide-split-client tab }
 
 # ─── Opening a specific file in a split ──────────────────────────────────────
 
-define-command -params 1 kak-ide-open-vsplit -docstring %{
-    kak-ide-open-vsplit <file>: open <file> in a new pane to the right
-} %{
-    kak-ide-mux-guard
+define-command -hidden -params 2 kak-ide-open-split %{
     evaluate-commands %sh{
-        printf 'kak-ide-mux-split right 50 %%{kak -c %s "%s"}\n' "$kak_session" "$1"
+        [ -z "$kak_opt_windowing_module" ] &&
+            printf "fail 'kak-ide: no windowing module — run Kakoune inside wezterm or tmux'\n" &&
+            exit
+        printf 'evaluate-commands %%{ set-option window windowing_placement %s; new edit -existing %%{%s} }\n' \
+            "$1" "$2"
     }
 }
+
+define-command -params 1 kak-ide-open-vsplit -docstring %{
+    kak-ide-open-vsplit <file>: open <file> in a new pane to the right
+} %{ kak-ide-open-split horizontal %arg{1} }
 
 define-command -params 1 kak-ide-open-hsplit -docstring %{
     kak-ide-open-hsplit <file>: open <file> in a new pane below
-} %{
-    kak-ide-mux-guard
-    evaluate-commands %sh{
-        printf 'kak-ide-mux-split below 50 %%{kak -c %s "%s"}\n' "$kak_session" "$1"
-    }
-}
+} %{ kak-ide-open-split vertical %arg{1} }
 
 # ─── Moving between splits ───────────────────────────────────────────────────
-
-define-command -hidden -params 1 kak-ide-split-focus %{ kak-ide-mux-focus %arg{1} }
 
 define-command kak-ide-split-left  -docstring 'focus the pane to the left'  %{ kak-ide-mux-focus left  }
 define-command kak-ide-split-down  -docstring 'focus the pane below'        %{ kak-ide-mux-focus down  }

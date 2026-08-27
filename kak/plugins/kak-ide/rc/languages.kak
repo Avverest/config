@@ -7,6 +7,16 @@ hook global BufCreate .*[.]es6 %{ set-option buffer filetype javascript }
 hook global BufCreate .*[.]rockspec %{ set-option buffer filetype lua }
 
 # ─── JSX / TSX: pieces Kakoune has no filetype module for ─────────────────────
+#
+# Kakoune folds .jsx/.tsx into javascript/typescript, but kak-tree-sitter picks
+# its grammar from `filetype`, and the typescript queries cannot parse JSX — so
+# these get filetypes of their own (set above). That means none of the builtin
+# javascript/typescript hooks fire for them, and the indent hooks, comment
+# tokens, highlighters and lsp_language_id all have to be re-supplied here.
+#
+# The highlighters only need a `ref` to the base language: JSX regions are
+# installed into shared/javascript AND shared/typescript by
+# init-javascript-filetype, so both already understand JSX.
 
 hook global WinSetOption filetype=(jsx|tsx) %{
     require-module javascript
@@ -43,6 +53,10 @@ hook global BufSetOption filetype=jsx %{ set-option buffer lsp_language_id javas
 hook global BufSetOption filetype=tsx %{ set-option buffer lsp_language_id typescriptreact }
 
 # ─── Indentation: 2 spaces across the board ──────────────────────────────────
+#
+# Kakoune ships rc/detection/editorconfig.kak, but it only defines an opt-in
+# `editorconfig-load` command (no hook calls it, and it needs the editorconfig
+# binary on PATH), so it cannot replace this default.
 
 hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|json|lua) %{
     set-option buffer tabstop 2
