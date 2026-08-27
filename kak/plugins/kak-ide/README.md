@@ -1,20 +1,14 @@
 # kak-ide
 
-An IDE layer for Kakoune, built to `KAKOUNE-PARITY-PLAN.md`.
+A small IDE layer for Kakoune, local to this config.
 
 It sits **on top of** [kakoune-lsp][] and [kak-tree-sitter][] rather than
-replacing them, and adds only what neither provides. Nothing here forks or
-patches Kakoune's core.
+replacing them, and adds only what neither provides: project-root detection,
+formatter/linter resolution, multiplexer-backed splits, a file browser and a
+surround mode. Nothing here forks or patches Kakoune's core.
 
 [kakoune-lsp]: https://github.com/kakoune-lsp/kakoune-lsp
 [kak-tree-sitter]: https://git.sr.ht/~hadronized/kak-tree-sitter
-
-## Status
-
-**All phases complete (0–6).** See "Roadmap" below, and `AUDIT.md` for how the plan's estimates changed
-once the real versions on this machine were checked — several items the plan
-budgets as "build" turned out to be already solved upstream, and two shipped
-keybindings turned out to be silently unreachable.
 
 ## Install
 
@@ -26,298 +20,131 @@ source "%val{config}/plugins/kak-ide/rc/kak-ide.kak"
 
 Order matters: it must come **after** the `evaluate-commands %sh{ kak-lsp }`
 line (it extends `lsp_servers`) and **before** kak-tree-sitter is initialised
-(it decides the filetypes tree-sitter keys off).
+(it decides the filetypes tree-sitter keys its grammar choice off).
 
-## What it does today
+`rc/kak-ide.kak` sources its siblings in a fixed order:
 
-### Seven languages, end to end
+    project → mux → languages → tooling → splits → files → surround → keymap
 
-Rust, TypeScript, JavaScript, JSX, TSX, HTML, CSS (+SCSS/LESS) and Lua get
-filetype detection, indent width, comment tokens, a tree-sitter grammar with
-query set, and a configured language server.
+## Modules
 
-Two things here are not just configuration:
+### project.kak — project root
 
-- **`.jsx`/`.tsx` get their own filetypes.** Kakoune maps them to
-  `javascript`/`typescript`, but kak-tree-sitter picks its grammar from
-  `filetype`, and the `typescript` query set cannot parse JSX. Giving them
-  distinct filetypes makes tree-sitter select the JSX-capable queries; the
-  pieces Kakoune only ships for javascript/typescript (indent hooks, comment
-  tokens, `languageId`, a static-highlighter fallback) are re-supplied.
-- **The TypeScript server is chosen, not assumed.** `kak_ide_ts_server`
-  defaults to `auto`, which prefers **vtsls** when it is on PATH. vtsls vendors
-  its own TypeScript, so it works in a project with no `node_modules`;
-  `typescript-language-server` vendors none, refuses to start without one, and
-  that failure *panics kak-lsp* and disables LSP for the buffer — so kak-ide
-  never hands it a configuration it cannot start from. Either server is checked
-  against the project's own TypeScript when the project pins one (`tsserver.path`
-  for tsls, `typescript.tsdk` for vtsls), falling back to a copy kak-ide keeps
-  under `~/.local/share/kak-ide`. Force one with:
+A VCS root always wins; otherwise the directory tree is walked upward looking
+for `kak_ide_root_markers`. The shell logic lives in the `kak_ide_root_sh`
+option and is `eval`'d by consumers rather than duplicated.
 
-  ```kak
-  set-option global kak_ide_ts_server vtsls                       # or
-  set-option global kak_ide_ts_server typescript-language-server
-  ```
+    kak-ide-project-root      echo the current buffer's root
+    kak-ide-detect-root       recompute it (runs on WinCreate)
 
-### Formatter / linter detection (plan §6.1)
+### mux.kak — multiplexer abstraction
 
-Resolved once per project root, cached per buffer:
+Every pane/window/focus operation goes through this. Two backends, chosen
+**per client at call time**: wezterm (when the client's env has
+`WEZTERM_PANE`) or tmux. The pane id is always read from `kak_client_env_*`,
+never the server's own environment — one session can have clients in several
+panes.
 
-| Project contains | Formatter | Linter |
-|---|---|---|
-| `biome.json(c)` | Biome (JS/TS/JSX/TSX/JSON/CSS) | Biome (JS/TS/JSX/TSX/JSON) |
-| ESLint config | ↓ | ESLint, attached as a second server |
-| Prettier config | Prettier | ↓ |
-| none of the above | the language server | the language server |
+    kak-ide-mux-status        report which backend this client drives
 
-Biome is deliberately **not** used for HTML (it has no HTML support) and not
-for CSS *linting* (it lints JS/TS/JSON only) — CSS diagnostics stay with
-`vscode-css-language-server`. Project-local `node_modules/.bin` wins over a
-global install, so a repo that pins its own Prettier gets that Prettier.
+### languages.kak — filetypes and servers
 
-Format-on-save is on by default. Inspect or change it:
+Gives `.jsx`/`.tsx` their own filetypes. Kakoune folds them into
+javascript/typescript, but tree-sitter picks its grammar from `filetype` and
+the typescript queries cannot parse JSX. The indent hooks, comment tokens and
+`lsp_language_id` that Kakoune ships only for the base filetypes are then
+re-supplied.
 
-```
-:kak-ide-tooling-info              show what resolved for this buffer
-:kak-ide-status                    root, trust, filetype, formatter, linter
-:kak-ide-format-on-save-toggle     turn format-on-save off/on
-:kak-ide-modeline-enable           show fmt/lint in the modeline
-```
+### tooling.kak — formatter / linter
 
-### Workspace trust (plan item 11)
+Resolved per project root and cached per buffer: biome (when a `biome.json`
+is present) → eslint/prettier → LSP. Format-on-save defaults on.
 
-Opening a file from an untrusted directory should not silently launch a
-language server: LSP config names an arbitrary binary, and a repo-local
-`.eslintrc.js` or `biome.json` is content someone else wrote.
+    kak-ide-format                   format the buffer
+    kak-ide-format-on-save-toggle    turn format-on-save on or off
+    kak-ide-tooling-info             show what resolved for this buffer
 
-The mechanism is built and **off by default**, because switching it on would
-stop LSP working in every existing project until each is trusted. Enable with:
+### splits.kak — splits as panes
 
-```kak
-set-option global kak_ide_trust_enable true
-```
+A "split" is a second Kakoune *client* of the same session
+(`kak -c $kak_session`) in a multiplexer pane, so panes share buffers,
+registers and language servers. Kakoune has no internal splits.
 
-Then `:kak-ide-trust` / `:kak-ide-untrust` / `:kak-ide-trust-list`. Trusted
-roots persist in `%val{config}/kak-ide-trusted`.
+Bound under `,s`:
 
-### Project-wide refactoring (plan §7.1, §7.2)
+    v / s / t     split right / below / new window-tab
+    h j k l       move focus
+    z             zoom this pane
+    q / o         close this pane / close all others
 
-| Key | Action |
-|---|---|
-| `,R` | rename symbol across the workspace (LSP) |
-| `,%` | project-wide find & replace |
+### files.kak — file browser
 
-**Find & replace** (`,%`, or `:kak-ide-replace <pattern> <replacement>`) stages a
-unified diff of every change into a scratch buffer and writes **nothing** until
-you run `:kak-ide-replace-apply`. `:kak-ide-replace-abort` discards it.
-Discovery is ripgrep `--pcre2` and substitution is perl — both PCRE, so the set
-of files previewed is exactly the set that changes. `.gitignore` is respected,
-`$1..$9` backreferences work, and the replacement is **never eval'd** (a
-replacement string is text, not code — there is a regression test for this).
+yazi in a zoomed pane. wezterm cannot hand back a pane's stdout, so the
+selection travels via `--chooser-file` and a background poll feeds `edit`
+commands back with `kak -p "$kak_session"`. Same shape fzf.kak uses.
 
-**⚠️ Rename writes to disk.** kakoune-lsp applies a rename in-memory for the
-buffer you are in, but writes every *other* affected file **straight to disk**,
-with no confirmation. Measured on a 3-file fixture: 2 of 3 files were silently
-rewritten. Plan §7.1 asks for the opposite ("do not silently write to disk"),
-and that is **not reachable from the plugin boundary** — pre-opening the files
-as buffers does not prevent it (also measured). So `kak-ide-rename`:
+    kak-ide-files
 
-- opens every file mentioning the symbol, so they are all in the buffer list
-  with in-session undo history;
-- shows the resulting `git diff` immediately, so the change is reviewed after
-  the fact rather than not at all;
-- `:kak-ide-rename-check` warns first if the work tree is already dirty — which
-  is exactly when that post-hoc diff stops being attributable.
+### surround.kak
 
-The escape hatch is `git checkout -- .` from the project root. Prefer renaming
-from a clean work tree.
+Reads its delimiter as the next keypress, so any character works with no list
+of blessed characters. Bound under `,m`:
 
-### Goto file / import navigation (plan §7.3)
+    a <c>         wrap selection in <c>
+    d <c>         delete the surrounding <c>
+    r <c> <d>     replace <c> with <d>
+    q / Q / g     quick ' " `
+    t / T         wrap in / remove an HTML tag
 
-`gf` (goto mode) follows the import or asset reference under the cursor.
-Kakoune's native `gf` only opens a literal selected path; this resolves the
-specifier, and keeps the native behaviour as the final fallback — so it is a
-strict superset, not a conflicting rebind.
+Note the file cannot contain a literal unpaired bracket: Kakoune counts
+brackets while parsing `%{…}` blocks even inside quoted strings, which is why
+the quote shortcuts use `%§…§`.
 
-Resolution order, as §7.3 specifies: **filesystem probing first** (exact, works
-with no server running), **then `lsp-definition`** for anything it declines
-(bare package specifiers, external crates — the server knows about
-`node_modules` and `~/.cargo/registry`), **then native `gf`**. Several
-candidates go to a picker rather than being guessed at.
+### keymap.kak
 
-| Language | Resolves |
-|---|---|
-| TS / JS / JSX / TSX | `./x`, `../x`, tsconfig/jsconfig `paths` + `baseUrl` aliases, extension order (`.ts` before `.js` — source, not build output), `dir/index.*` |
-| Rust | `mod x;`, `use crate::…`, `use self::…`, `use super::…` → the module tree (`x.rs` / `x/mod.rs`) |
-| Lua | `require("a.b.c")` → `a/b/c.lua`, `a/b/c/init.lua` |
-| HTML | `src=`, `href=` (remote URLs and `data:` correctly ignored) |
-| CSS | `@import`, `url(…)` |
+Opt-in binding groups, called from `kakrc`:
 
-`kak-ide-goto-file-vsplit` / `-hsplit` open the target in a WezTerm pane on the
-same session.
+    kak-ide-keymap-treesitter-enable
+    kak-ide-keymap-git-enable
+    kak-ide-keymap-surround-enable
 
-### Pickers (plan §7.4)
+Git hunk and diagnostic navigation hang off `,)` / `,(`.
 
-Built in Kakscript over `fzf.kak` — **not** a Rust sidecar; see the RESOLVED
-decision in `KAKOUNE-PARITY-PLAN.md` §5. fzf is already a fast compiled matcher,
-so there was no matching cost to reclaim by writing a daemon.
+## Commands
 
-| Key | Picker | Source |
-|---|---|---|
-| `,f` / `,F` | files (project / buffer dir) | fzf.kak |
-| `,b` | buffers | fzf.kak |
-| `,/` | global search | fzf.kak + rg |
-| `,g` | **changed files (git)** | new |
-| `,j` | **recent locations** | new |
-| `,:` | **command palette** | new |
-| `,'` | **last picker** | new |
-| `,s` / `,S` | symbols (document / workspace) | kakoune-lsp |
-| `,x` | diagnostics | kakoune-lsp |
-| `,e` | file explorer | kaktree |
-| `<space>v` / `<space>h` | **file → open in split** | new (WezTerm panes) |
-| `,a` / `,R` | code actions / rename symbol | kakoune-lsp |
-
-Two honest caveats:
-
-- **`,j` is not Kakoune's jumplist.** Kakoune keeps one for `<c-o>`/`<c-i>` but
-  exposes no value to read it, so a faithful jumplist picker needs a core patch.
-  This is a deduplicated ring of positions recorded on buffer display — what a
-  jumplist picker is actually used for — named for what it is.
-- **Split-open is WezTerm-native, not tmux.** fzf.kak's own hsplit/vsplit
-  wrappers shell out to `tmux-terminal-*` and only work inside tmux. Kakoune has
-  no internal splits — a "split" is a second client in a second terminal pane —
-  so `kak-ide-picker-files-vsplit` / `-hsplit` (`<space>v` / `<space>h` in the
-  Helix map) spawn a Kakoune client on the *same session* in a WezTerm pane.
-  Same session means both panes share buffers, registers and the running
-  language servers. Falls back to Kakoune's `terminal` elsewhere. No tmux
-  needed.
-
-The command palette builds its own index (778 entries here): Kakoune exposes no
-way to enumerate commands — no `%val`, no `debug commands`, and this build ships
-no doc pages — so the index is scraped from `define-command` across everything
-loaded, unioned with a static list of C++ builtins and kakoune-lsp's generated
-commands. Rebuild after installing a plugin with `:kak-ide-palette-refresh`.
-
-### Reaching capability that was already installed
-
-Two opt-in modules, enabled in `kakrc`, that bind things which were installed
-and unreachable rather than adding anything new:
-
-- `kak-ide-keymap-treesitter-enable` — kak-tree-sitter ships **70 bindings**
-  across its own user modes and no way in. Adds `,t` plus Helix-style
-  `<a-o>`/`<a-i>`/`<a-n>`/`<a-p>` for parent/child/sibling. Object mode is left
-  alone: kak-tree-sitter already maps `<a-i>f/t/a/T` itself.
-- `kak-ide-keymap-git-enable` — Kakoune's own `git.kak` has `show-diff`,
-  `next-hunk`, `prev-hunk`. Adds `]`/`[` nav modes (`]c` hunks, `]d` diagnostics,
-  `]f` functions) and refreshes the diff gutter on open/write, which stock
-  `git.kak` never does.
-
-`kak-ide-keymap-helix-enable` puts the full §8 table on `<space>` and is **on**
-in this config. §8 rule 4 (Kakoune's binding wins a conflict) would normally
-leave it off — `<space>` drops all but the main selection — but `kakrc`'s `,`
-leader is commented out, so without it no key reaches these bindings at all.
-Kakoune's `<space>` is preserved on `<a-space>`, which was unbound.
-
-Because the leader opens the `kak-ide` mode rather than `user`, that mode also
-carries the everyday commands that otherwise lived only on `,`: `w`/`W` write,
-`q` quit, `c` comment, `=` format, `n`/`p` buffer next/previous, `B` close
-buffer, `l` LSP mode, `t` tree-sitter mode, `z` fzf menu.
-
-### Debugging (plan §2.9)
-
-`bin/kak-dap` is a DAP client daemon; `rc/dap.kak` is the editor half. Unlike
-the other modules it needs a daemon — DAP is a long-lived asynchronous session
-with reverse-requests, which a run-and-exit shell script cannot hold.
-
-| Adapter | Transport | Languages |
-|---|---|---|
-| `lldb-dap` | stdio | Rust |
-| `vscode-js-debug` | TCP + child sessions | JS, TS, JSX, TSX |
-
-```
-:kak-dap-start [program]   # program guessed from filetype + project root
-:kak-dap-breakpoint        # toggle; works before a session exists
-:kak-dap-breakpoint-cond   # conditional
-:kak-dap-breakpoint-log    # log point (prints, does not stop)
-:kak-dap-continue / -next / -step-in / -step-out / -pause
-:kak-dap-variables / -stack / -frame <n>
-:kak-dap-status / -stop
-```
-
-Run `kak-ide-keymap-dap-enable` to put the debugger on `<space>d`: `b`
-breakpoint, `s` start, `c` continue, `n`/`i`/`o` step over/into/out, `v`
-variables, `k` stack, `q` stop. Breakpoints show as `●` in the gutter and the
-current stop line as `▶`.
-
-js-debug is not on npm — it ships as a GitHub release asset, installed to
-`~/.local/share/kak-ide/js-debug`. Override either adapter with `KAK_DAP_LLDB`
-or `KAK_DAP_JS_DEBUG`.
-
-### Keybindings added by Phase 6
-
-Bound by default, on top of what `kakrc` already had:
-
-| Key | Action | Note |
-|---|---|---|
-| `gD` | declaration | `goto` mode had `D` free |
-| `gi` | implementation | `goto` mode had `i` free |
-| `,D` | diagnostics picker (workspace) | was on `,x`, where `kakrc`'s `:write-quit` silently won |
-| `<a-i>c` / `<a-a>c` | comment text object | kak-tree-sitter ships the query for all 6 languages but never binds `c` |
-| `]C` / `[C` | next / previous comment | same query, search mode |
-
-Everything else in §8's table was already bound, already upstream, or
-deliberately left to Kakoune under §8 rule 4.
-
-## Testing
-
-```
-plugins/kak-ide/test/smoke.sh          # config resolution + pickers, ~15s
-plugins/kak-ide/test/smoke.sh --lsp    # also starts servers, ~90s
-plugins/kak-ide/test/goto.sh           # import resolution, 18 cases, ~1s
-plugins/kak-ide/test/refactor.sh       # find/replace, ~5s
-plugins/kak-ide/test/refactor.sh --rename  # also the LSP multi-file rename
-plugins/kak-ide/test/keymap.sh         # 28 binding assertions, ~2s
-plugins/kak-ide/test/perf.sh           # plan §10 perf sanity, ~1s
-```
-
-`perf.sh` needs a repo of >=5000 files to mean anything (plan §10) — this
-config is ~100. It uses the cargo registry checkout when present and reports
-**SKIP**, never PASS, when no such repo is available, so a green run cannot come
-from an assertion that never ran. Override with `KAK_IDE_PERF_REPO`.
-
-`keymap.sh` asserts against `debug mappings` — what Kakoune actually resolved
-after every file loaded — not against what the source asks for. Kakoune
-overwrites a duplicate `map` silently, and `kakrc` is sourced *after* kak-ide,
-so a key this plugin claims can be taken back with no error at all. Two
-bindings had already shipped unreachable that way (`AUDIT.md` §S).
-
-The fixture is a real multi-file project (the plan requires this — single
-files do not exercise root detection or import resolution). Rebuild it with
-`test/make-fixture.sh`; override its location with `KAK_IDE_FIXTURE`.
+    kak-ide-status                   what kak-ide resolved for this buffer
+    kak-ide-modeline-enable          show formatter/linter in the modeline
+    kak-ide-close-buffer             close, asking if modified
 
 ## Options
 
 | Option | Default | Meaning |
 |---|---|---|
-| `kak_ide_last_picker` | (computed) | picker replayed by `,'` |
-| `kak_ide_jump_ring_size` | `60` | recent-locations ring length |
-| `kak_ide_ts_server` | `auto` | `auto` (prefers vtsls) / `vtsls` / `typescript-language-server` |
 | `kak_ide_root_markers` | `.git .hg … Makefile` | project root markers; VCS root wins |
 | `kak_ide_project_root` | (computed) | this buffer's project root |
+| `kak_ide_ts_server` | `auto` | `auto` (prefers vtsls) / `vtsls` / `typescript-language-server` |
 | `kak_ide_format_on_save` | `true` | format on write when a formatter resolved |
-| `kak_ide_formatter` | (computed) | `biome`/`prettier`/`stylua`/`lsp`/`none` |
-| `kak_ide_linter` | (computed) | `biome`/`eslint`/`lsp`/`none` |
-| `kak_ide_trust_enable` | `false` | gate LSP startup on a trust decision |
-| `kak_ide_trust_file` | `%val{config}/kak-ide-trusted` | persisted trusted roots |
+| `kak_ide_formatter` | (computed) | `biome` / `prettier` / `lsp` / `none` |
+| `kak_ide_linter` | (computed) | `biome` / `eslint` / `lsp` / `none` |
 
-## Roadmap
+## Tests
 
-| Phase | Scope | State |
-|---|---|---|
-| 0 | Audit | done — `AUDIT.md` |
-| 1 | Language plumbing, §6.1 tooling, workspace trust | **done** |
-| 2 | Multi-file rename, project-wide find/replace | **done** — rename verified across 3 files; find/replace built. See the disk-write warning above |
-| 3 | Picker core, file explorer, command palette, goto-file/import resolvers | **done** |
-| 4 | Tree-sitter textobjects/motions, git gutter + hunk nav | **done via keymap modules** — both were already implemented upstream |
-| 5 | DAP | **done** — lldb-dap (Rust) + js-debug (JS/TS), verified end to end in a real client |
-| 6 | Keybinding reconciliation | **done** — §8 table bound and asserted against `debug mappings` in `test/keymap.sh` |
+There is no runner; each is a standalone `sh` script under `test/`. They drive
+a real headless Kakoune (`kak -ui json -e …`) and assert on what it resolved.
+
+    cd test
+    ./make-fixture.sh     # build /tmp/kakide-fixture (required by smoke)
+    ./smoke.sh            # filetype/lang/indent/formatter resolution, ~15s
+    ./smoke.sh --lsp      # also start servers, wait for diagnostics, ~90s
+    ./keymap.sh           # binding assertions vs `debug mappings`, ~2s
+    ./perf.sh             # search latency, ~1s
+
+Override the fixture path with `KAK_IDE_FIXTURE`, the perf repo with
+`KAK_IDE_PERF_REPO`. `perf.sh` reports **SKIP**, never PASS, when no
+sufficiently large repo is available, so a green run cannot come from an
+assertion that never ran.
+
+`keymap.sh` exists because `kakrc`'s own `map` calls run last and silently
+overwrite anything kak-ide bound to the same key — Kakoune reports no error
+for a duplicate `map`, and bindings have shipped unreachable that way. It
+asserts against `debug mappings` (what Kakoune actually resolved), not source.

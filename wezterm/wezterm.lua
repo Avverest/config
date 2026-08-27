@@ -5,10 +5,11 @@ local getKeys = require("keys")
 
 local config = wezterm.config_builder()
 
-local font = fonts.monitor(fonts.lilex, 400)
+-- local font = fonts.monitor(fonts.lilex, 500)
+local font = fonts.monitor(fonts.iosevka, 500)
 
-local dark = themes.dark.azu
-local light = themes.light.mexico
+-- local theme = themes.dark.azu
+local theme = themes.light.mexico
 
 config = {
 	automatically_reload_config = true,
@@ -16,7 +17,7 @@ config = {
 	font = wezterm.font(font.family, { weight = font.weight }),
 	font_size = font.size,
 	line_height = font.height,
-	color_scheme = light,
+	color_scheme = theme,
 
 	macos_window_background_blur = 10,
 	window_background_opacity = 1,

@@ -25,6 +25,12 @@ try %{
     set-option global fzf_preview_tmux_height '70%'
     set-option global fzf_tmux_height         '40%'
 
+    # Route fzf's picker pane through kak-ide's multiplexer bridge, so it works
+    # under wezterm as well as tmux. fzf.kak truncates this option at the first
+    # space and appends the script as a single %{...} argument, so it must name
+    # exactly one command and nothing else.
+    set-option global fzf_terminal_command 'kak-ide-fzf-term'
+
     declare-option -hidden str fzf_project_root_sh %{
         dir="${kak_buffile%/*}"
         [ -d "$dir" ] || dir="$PWD"

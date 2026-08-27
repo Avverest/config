@@ -1,12 +1,9 @@
 #!/bin/sh
-# kak-ide keymap regression test — plan Section 8 / Phase 6.
+# kak-ide keymap regression test.
 #
 # Kakoune's `map` silently overwrites an existing binding, and `kakrc` is
-# sourced AFTER kak-ide, so a key kak-ide claims can be taken back without any
-# error. Two such shadowings shipped undetected before this test existed:
-#
-#   ,x   kak-ide claimed it for diagnostics; kakrc's :write-quit won  -> moved to ,D
-#   <space>f in the kak-ide mode was mapped twice in one file; the second won
+# sourced AFTER kak-ide, so a key kak-ide claims can be taken back with no
+# error at all. Bindings have shipped unreachable that way.
 #
 # `debug mappings` is authoritative — it reports what Kakoune actually resolved
 # after every file has loaded. This asserts against that, not against source.
@@ -56,62 +53,38 @@ dupes() { # dupes <mode> — a key mapped twice in one mode means one was shadow
     fi
 }
 
-echo "── Section 8 goto table ──────────────────────────────────────"
-want goto d 'lsp-definition'        'gd  definition'
-want goto D 'lsp-declaration'       'gD  declaration'
-want goto y 'lsp-type-definition'   'gy  type definition'
-want goto r 'lsp-references'        'gr  references'
-want goto i 'lsp-implementation'    'gi  implementation'
-want goto f 'kak-ide-goto-file'     'gf  file / import under cursor'
-
-echo
-echo "── the leader is reachable ──────────────────────────────────"
-# A mode's bindings are dead weight if no key enters the mode. Asserting the
-# contents of 'kak-ide'/'user' says nothing about whether any key opens them —
-# kakrc's `,` leader is a single `map` and is currently commented out, so
-# <space> (via kak-ide-keymap-helix-enable) is the only way in.
-leader_ok=no
-grep -qE "^ \* normal <space>: ': enter-user-mode kak-ide" "$norm" && leader_ok=yes
-grep -qE "^ \* normal ,:" "$norm" && leader_ok=yes
-if [ "$leader_ok" = yes ]; then
-    printf '  %-44s ok\n' "a leader key reaches the IDE bindings"
-else
-    printf '  %-44s FAIL (neither <space> nor , is bound)\n' "a leader key reaches the IDE bindings"; fail=1
-fi
-
-# Kakoune's <space> must not simply vanish when it is taken as the leader.
-# Matched on the docstring: the command it maps to is the literal key `<space>`,
-# which the normalizer above turns into a blank and cannot be matched on.
+echo "── the leader reaches the menus ─────────────────────────────"
+want normal ',' 'enter-user-mode user' ',   leader menu'
 want normal '<a-space>' 'drop all but main selection' '<a-space>  drop all but main selection'
 
 echo
 echo "── leader bindings survive kakrc (load-order shadowing) ──────"
-want user D 'kak-ide-picker-diagnostics' ',D  diagnostics picker'
-want user x 'write-quit'                 ',x  still kakrc:write-quit'
-want user R 'kak-ide-rename'             ',R  rename symbol'
-want user a 'lsp-code-actions'           ',a  code actions'
-want user g 'kak-ide-picker-changed'     ',g  changed files'
-want user t 'tree-sitter'                ',t  tree-sitter mode'
+want user x 'write-quit'                ',x  write & quit'
+want user a 'lsp-code-actions'          ',a  code actions'
+want user l 'enter-user-mode lsp'       ',l  LSP mode'
+want user e 'kaktree-toggle'            ',e  file explorer'
+want user f 'fzf-project-files'         ',f  find file in project'
+want user t 'tree-sitter'               ',t  tree-sitter mode'
+want user s 'enter-user-mode kak-ide-split'    ',s  splits mode'
+want user m 'enter-user-mode kak-ide-surround' ',m  surround mode'
+dupes user
 
 echo
-echo "── Helix-parity mode is fully reachable ─────────────────────"
-want kak-ide f 'kak-ide-picker-files'    'kak-ide f  file picker (not shadowed)'
-want kak-ide b 'kak-ide-picker-buffers'  'kak-ide b  buffers'
-want kak-ide s 'kak-ide-picker-symbols'  'kak-ide s  document symbols'
-want kak-ide / 'kak-ide-picker-grep'     'kak-ide /  global search'
-dupes kak-ide
+echo "── submodes are reachable and unshadowed ────────────────────"
+want kak-ide-split v 'kak-ide-split-right' 'split v  split right'
+want kak-ide-split s 'kak-ide-split-below' 'split s  split below'
+dupes kak-ide-split
+dupes kak-ide-surround
 
 echo
 echo "── structural + unimpaired nav ──────────────────────────────"
-want object f 'function'  '<a-i>f  function textobject'
-want object t 'class'     '<a-i>t  type textobject'
-want object a 'parameter' '<a-i>a  argument textobject'
-want object c 'comment'   '<a-i>c  comment textobject'
+want object f 'lsp-object Function' '<a-i>f  function textobject'
+want object t 'lsp-object Class'    '<a-i>t  type textobject'
+want object c 'comment'             '<a-i>c  comment textobject'
 want kak-ide-next c 'git next-hunk'   ']c  next git hunk'
 want kak-ide-prev c 'git prev-hunk'   '[c  previous git hunk'
 want kak-ide-next d 'lsp-find-error'  ']d  next diagnostic'
-want kak-ide-next C 'search_next'     ']C  next comment'
-want kak-ide-prev C 'search_prev'     '[C  previous comment'
+want kak-ide-next f 'lsp-next-function' ']f  next function'
 
 rm -f "$maps" "$norm"
 echo

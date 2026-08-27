@@ -1,7 +1,6 @@
 -- Основные настройки редактора
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
-vim.cmd.colorscheme("kanagawa")
 
 local o = vim.o
 

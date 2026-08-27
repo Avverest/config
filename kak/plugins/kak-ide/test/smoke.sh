@@ -88,8 +88,8 @@ check "$FIXTURE/src/index.ts"   typescript typescript      2
 check "$FIXTURE/src/Button.tsx" tsx        typescriptreact 2
 check "$FIXTURE/src/legacy.js"  javascript javascript      2
 check "$FIXTURE/src/App.jsx"    jsx        javascriptreact 2
-check "$FIXTURE/styles.css"     css        css             2
-check "$FIXTURE/index.html"     html       html            2
+check "$FIXTURE/styles.css"     css        css             4
+check "$FIXTURE/index.html"     html       html            4
 check "$FIXTURE/init.lua"       lua        lua             2
 check "$FIXTURE/rs/src/main.rs" rust       rust            4
 
@@ -103,38 +103,28 @@ if [ "$WITH_LSP" = yes ]; then
 fi
 
 echo
-echo "── picker core ───────────────────────────────────────────────"
+echo "── commands and modes ────────────────────────────────────────"
 sess="kakidepick$$"
 kak -d -s "$sess" >/dev/null 2>&1 &
 sleep 3
 res=$(mktemp); rm -f "$res"
-for c in kak-ide-picker-files kak-ide-picker-files-cwd kak-ide-picker-buffers \
-         kak-ide-picker-grep kak-ide-picker-changed kak-ide-picker-jumps \
-         kak-ide-picker-palette kak-ide-picker-last kak-ide-picker-symbols \
-         kak-ide-picker-symbols-workspace kak-ide-picker-diagnostics \
-         kak-ide-palette-refresh kaktree-toggle tree-sitter-nav; do
+for c in kak-ide-status kak-ide-project-root kak-ide-tooling-info kak-ide-format \
+         kak-ide-format-on-save-toggle kak-ide-close-buffer kak-ide-files \
+         kak-ide-split-right kak-ide-split-below kak-ide-split-zoom \
+         kak-ide-surround-add kak-ide-surround-delete kak-ide-surround-replace \
+         kak-ide-mux-status kaktree-toggle; do
     printf "try %%{ alias global __probe %s } catch %%{ echo -to-file %s %s }\n" "$c" "$res" "$c"
 done | kak -p "$sess"
-for m in kak-ide kak-ide-next kak-ide-prev tree-sitter; do
+for m in kak-ide-split kak-ide-surround kak-ide-next kak-ide-prev; do
     printf "try %%{ map global %s <F12> nop; unmap global %s <F12> } catch %%{ echo -to-file %s mode:%s }\n" "$m" "$m" "$res" "$m"
 done | kak -p "$sess"
 sleep 1
 if [ -s "$res" ]; then
     printf 'commands/modes   FAIL(missing: %s)\n' "$(tr '\n' ' ' < "$res")"; fail=1
 else
-    printf 'commands/modes   all 14 commands and 4 user modes present  ok\n'
+    printf 'commands/modes   all 15 commands and 4 user modes present  ok\n'
 fi
 rm -f "$res"
-
-# The palette has to build its own index; verify it is non-trivial and clean.
-printf 'kak-ide-palette-refresh\n' | kak -p "$sess"; sleep 3
-cache="$HOME/.config/kak/.kak-ide-palette"
-n=$(wc -l < "$cache" 2>/dev/null); n=${n:-0}
-junk=$(grep -cE '^-|[[:space:]]' "$cache" 2>/dev/null); junk=${junk:-0}
-st=ok
-[ "$n" -gt 200 ] || { st="FAIL(index too small: $n)"; fail=1; }
-[ "$junk" -eq 0 ] || { st="FAIL($junk malformed entries)"; fail=1; }
-printf 'palette index    %s entries, %s malformed  %s\n' "$n" "$junk" "$st"
 printf 'quit!\n' | kak -p "$sess" 2>/dev/null
 
 echo

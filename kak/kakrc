@@ -105,7 +105,7 @@ try %{
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# kak-ide — the IDE layer built to KAKOUNE-PARITY-PLAN.md
+# kak-ide — the local IDE layer (see plugins/kak-ide/README.md)
 # ─────────────────────────────────────────────────────────────────────────────
 source "%val{config}/plugins/kak-ide/rc/kak-ide.kak"
 
@@ -122,19 +122,6 @@ plug "andreyorst/kaktree" config %{
 
     declare-option -docstring "command used to spawn a terminal for kaktree" \
         str termcmd 'kak-ide-termcmd'
-
-    define-command -hidden -params 1.. kak-ide-termcmd %{
-        nop %sh{
-            if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
-                wezterm cli split-pane --left --percent 25 \
-                    --cwd "${kak_client_env_PWD:-$PWD}" \
-                    --pane-id "${kak_client_env_WEZTERM_PANE}" \
-                    -- sh -c "$1" >/dev/null 2>&1
-            else
-                printf 'terminal sh -c %%{%s}\n' "$1" | kak -p "${kak_session}"
-            fi
-        }
-    }
 
     define-command -override -docstring "kaktree-toggle: Toggle kaktree window on and off" \
     kaktree-toggle %{ evaluate-commands %sh{
@@ -177,6 +164,7 @@ evaluate-commands %sh{
 
 kak-ide-keymap-treesitter-enable
 kak-ide-keymap-git-enable
+kak-ide-keymap-surround-enable
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Fuzzy finding (fzf.kak)
@@ -206,6 +194,12 @@ plug "andreyorst/fzf.kak" config %{
 
     set-option global fzf_preview_tmux_height '70%'
     set-option global fzf_tmux_height         '40%'
+
+    # Route fzf's picker pane through kak-ide's multiplexer bridge, so it works
+    # under wezterm as well as tmux. fzf.kak truncates this option at the first
+    # space and appends the script as a single %{...} argument, so it must name
+    # exactly one command and nothing else.
+    set-option global fzf_terminal_command 'kak-ide-fzf-term'
 
     declare-option -hidden str fzf_project_root_sh %{
         dir="${kak_buffile%/*}"
@@ -274,17 +268,25 @@ plug "andreyorst/fzf.kak" config %{
 # ─────────────────────────────────────────────────────────────────────────────
 set-option global autoinfo command|onkey
 
-map global user w ':write<ret>'           -docstring 'write (save)'
-map global user W ':write-all<ret>'       -docstring 'write all buffers'
-map global user q ':quit<ret>'            -docstring 'quit'
-map global user x ':write-quit<ret>'      -docstring 'write & quit'
+# ── Leader: `,` instead of `<space>` ──
+#
+# `<space>` is not a configurable leader in Kakoune — it is a hard-coded key
+# that enters `user` mode. So the two keys swap roles outright:
+#   ,          enter user mode (the leader menu below)
+#   <space>    clear selections to only the main one   (was `,`)
+#   <a-space>  clear the main selection                (was `<a-,>`)
+# The right-hand sides are raw keys, not commands, so they keep working inside
+# counts and macros the way the originals did.
+map global normal , ': enter-user-mode user<ret>' -docstring 'leader menu'
+map global normal <space> ',' -docstring 'clear selections to main'
+map global normal <a-space> '<a-,>' -docstring 'clear main selection'
+
 map global user = ':format<ret>'          -docstring 'format buffer'
 map global user c ':comment-line<ret>'    -docstring 'toggle line comment'
 map global user n ':buffer-next<ret>'     -docstring 'next buffer'
-map global user p ':buffer-previous<ret>' -docstring 'previous buffer'
-map global user d ':kak-ide-close-buffer<ret>' -docstring 'close buffer (asks if modified)'
+map global user N ':buffer-previous<ret>' -docstring 'previous buffer'
+map global user k ':kak-ide-close-buffer<ret>' -docstring 'close buffer (asks if modified)'
 map global user B ':buffer '              -docstring 'switch buffer (type name, <tab> completes)'
-map global user ? ':new-user-tips<ret>'   -docstring 'quick cheat sheet'
 
 # ── Pickers (,f files  ,/ search  ,b buffers) ──
 map global user f ': fzf-project-files<ret>'                 -docstring 'find file in project'
@@ -293,42 +295,14 @@ map global user F ': require-module fzf-file; fzf-file buffile-dir<ret>' -docstr
 map global user b ': require-module fzf-buffer; fzf-buffer<ret>'         -docstring 'switch buffer (fzf)'
 map global user r ': require-module fzf-recent; fzf-recent<ret>'         -docstring 'recent files'
 
-define-command new-user-tips -docstring 'show a quick Kakoune cheat sheet' %{
-    info -title 'Kakoune quick tips' %{Kakoune is "select first, then act":
+# ── System clipboard (macOS pbcopy/pbpaste) ──
+declare-user-mode clipboard
 
-  w  b  e      next word / back / end-of-word   (these SELECT, then you act)
-  x            select the whole line (press again to add the next line)
-  %            select the whole buffer
-  /   ?        search forward / backward, then  n / N  for next / previous
-  s            select every match inside the current selection
-  d y c p      delete / yank / change / paste the selection
-  u   <c-r>    undo / redo
+map global user y ': enter-user-mode clipboard<ret>' -docstring 'clipboard…'
 
-Multiple cursors (Kakoune's superpower):
-  C            add a cursor on the line below
-  <a-s>        split the selection into one cursor per line
-  ,            drop every selection except the main one
-
-Everything below hangs off <space>, Kakoune's own leader key.
-
-Finding things (project = the buffer's git root):
-  <space>f     find file in project   <space>/   search project contents
-  <space>b     switch buffer          <space>r   recent files
-  <space>F     files beside this one  <space>e   file explorer
-
-Splits (tmux panes sharing this session):
-  <space>sv <space>ss   split right / below      <space>st  new tmux window
-  <space>sh <space>sj <space>sk <space>sl   move focus left/down/up/right
-  <space>sq <space>so   close this pane / close all others
-
-Code (needs a language server):
-  <space>l     LSP menu — definition, references, hover, rename, ...
-  <space>a     code actions           <space>=   format buffer
-  <space>)     next hunk / diagnostic / function
-  <space>(     previous hunk / diagnostic / function
-
-Discover more as you go:
-  <space>      this leader menu       g  goto menu       v  view menu
-  <a-i>/<a-a>  inner / whole object   [ ]  to object start / end
-  :doc         the manual             :doc keys  the full key list}
-}
+map global clipboard y '<a-|>pbcopy<ret>'       -docstring 'copy selection to system clipboard'
+map global clipboard Y 'x<a-|>pbcopy<ret>'      -docstring 'copy whole line(s) to system clipboard'
+map global clipboard d '|pbcopy<ret>'           -docstring 'cut selection to system clipboard'
+map global clipboard p '<a-!>pbpaste<ret>'      -docstring 'paste system clipboard after'
+map global clipboard P '!pbpaste<ret>'          -docstring 'paste system clipboard before'
+map global clipboard R '|pbpaste<ret>'          -docstring 'replace selection with system clipboard'

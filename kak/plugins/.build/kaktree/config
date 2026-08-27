@@ -13,19 +13,6 @@ try %{
     declare-option -docstring "command used to spawn a terminal for kaktree" \
         str termcmd 'kak-ide-termcmd'
 
-    define-command -hidden -params 1.. kak-ide-termcmd %{
-        nop %sh{
-            if [ -n "${kak_client_env_WEZTERM_PANE:-}" ] && command -v wezterm >/dev/null 2>&1; then
-                wezterm cli split-pane --left --percent 25 \
-                    --cwd "${kak_client_env_PWD:-$PWD}" \
-                    --pane-id "${kak_client_env_WEZTERM_PANE}" \
-                    -- sh -c "$1" >/dev/null 2>&1
-            else
-                printf 'terminal sh -c %%{%s}\n' "$1" | kak -p "${kak_session}"
-            fi
-        }
-    }
-
     define-command -override -docstring "kaktree-toggle: Toggle kaktree window on and off" \
     kaktree-toggle %{ evaluate-commands %sh{
         : "$kak_opt_kaktreeclient" "$kak_quoted_client_list" \
