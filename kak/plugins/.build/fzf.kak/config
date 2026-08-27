@@ -87,10 +87,65 @@ try %{
         }
     }
 
+    # ── Changed files (git) ──
+    #
+    # `fzf-git` (the plugin's VCS module) lists `git ls-tree HEAD` — every
+    # tracked file, which is what ,f already gives. What is actually wanted
+    # day to day is the short list of files with uncommitted changes, so this
+    # builds the picker off `git status` instead.
+    #
+    # Parsing notes, all of which `--porcelain=v1 -z` exists to solve:
+    #   * paths are NUL-separated, so spaces and newlines in names are safe
+    #     (without -z, `sp ace.txt` comes back shell-quoted with dquotes)
+    #   * a rename entry is TWO NUL fields: `R  <new>` then `<old>`. The new
+    #     name comes first, so the extra field is dropped, not the useful one.
+    #   * XY is the two-char status; `??` is untracked, `D` in either column
+    #     means the file is gone from the worktree and cannot be opened, so
+    #     deletions are filtered out rather than offered as dead entries.
+    # The preview diffs against HEAD, not the worktree: plain `git diff` is
+    # empty for an already-staged file and would fall through to showing the
+    # file's plain contents. Untracked files have no diff either way, so they
+    # fall back to contents by design.
+    # Paths are repo-relative; the filter prefixes the root so `edit` resolves
+    # them from any cwd.
+
+    define-command -docstring "fzf-git-changed: fuzzy-find files with uncommitted changes" \
+    fzf-git-changed %{
+        require-module fzf
+        evaluate-commands %sh{
+            root=$(git rev-parse --show-toplevel 2>/dev/null)
+            if [ -z "$root" ]; then
+                printf "%s\n" "echo -markup %{{Error}not inside a git repository}"
+                exit
+            fi
+
+            # `tr` does the NUL splitting, not awk: macOS ships BSD awk, whose
+            # RS is a single character and cannot be NUL -- `RS="\0"` there
+            # yields ONE record holding the entire status output. `tr` is also
+            # in POSIX. Rename lookahead is then a flag carried to the next line.
+            items="cd '${root}' && git status --porcelain=v1 -z | tr '\\0' '\\n' | awk 'skip { skip=0; next } { xy=substr(\$0,1,2); path=substr(\$0,4); if (xy ~ /^R/ || xy ~ /^.R/) skip=1; if (xy ~ /D/) next; if (path != \"\") print xy \"\\t\" path }'"
+
+            if command -v bat >/dev/null 2>&1; then
+                preview="--preview '(git -C ${root} diff --color=always HEAD -- {2} | sed 1,4d | grep . || bat --color=always --style=plain ${root}/{2} || cat ${root}/{2}) 2>/dev/null'"
+            else
+                preview="--preview '(git -C ${root} diff --color=always HEAD -- {2} | sed 1,4d | grep . || cat ${root}/{2}) 2>/dev/null'"
+            fi
+
+            if [ -z "$(eval "$items")" ]; then
+                printf "%s\n" "echo -markup %{{Information}no uncommitted changes}"
+                exit
+            fi
+
+            printf "%s\n" "info -title %{fzf changed files} %{root: ${root}}"
+            printf "%s\n" "fzf -kak-cmd %{edit -existing} -items-cmd %{${items}} -filter %{sed 's|^[^\t]*\t|${root}/|'} -fzf-args %{--reverse -m --delimiter='\t' --with-nth=1,2 --nth=2 ${preview}}"
+        }
+    }
+
     # ── Bindings ──
 
     map global fzf 'P' ': fzf-project-files<ret>' -docstring 'find file in project (VCS root)'
     map global fzf 'G' ': fzf-project-grep<ret>'  -docstring 'grep in project (VCS root)'
+    map global fzf 'c' ': fzf-git-changed<ret>'   -docstring 'changed files (git status)'
  } catch %{
     echo -debug "Error while evaluating 'fzf.kak' configuration: %val{error}"
 

@@ -119,9 +119,17 @@ Git verbs hang off `,g`, wrapping Kakoune's own `git.kak`:
 | `,g B` | jump to the commit that last touched the line under the cursor |
 | `,g l` | `git log` |
 | `,g L` | `git log -L` for the selected line range |
+| `,g f` | fuzzy-pick a file with uncommitted changes (also `,z c`) |
 | `,g d` | `git diff` |
 | `,g s` | `git status` |
 | `,g h` / `,g H` | show / hide the hunk gutter |
+
+`,g f` runs `fzf-git-changed`, defined in `kakrc` alongside the other project
+pickers. It lists `git status` rather than `git ls-tree` — the plugin's own
+`fzf-vcs`/`fzf-git` lists every *tracked* file, which is what `,f` already
+does. Renames show the new name, deletions are omitted (nothing to open), and
+the preview shows the file's diff against `HEAD`, falling back to its contents
+for untracked files.
 
 Blame annotations are filled in asynchronously (`git blame --incremental`
 feeds them back through `kak -p`), so they land a moment after the keypress

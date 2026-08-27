@@ -90,6 +90,8 @@ want user 'g' 'enter-user-mode kak-ide-git' ',g       git submode'
 want kak-ide-git 'b' 'git blame'             'git b    toggle blame'
 want kak-ide-git 'B' 'git blame-jump'        'git B    jump to blamed commit'
 want kak-ide-git 'L' 'kak-ide-git-log-line'  'git L    log for selected lines'
+want kak-ide-git 'f' 'fzf-git-changed'       'git f    changed-files picker'
+want fzf 'c' 'fzf-git-changed'               'fzf c    changed-files picker'
 dupes kak-ide-git
 
 echo

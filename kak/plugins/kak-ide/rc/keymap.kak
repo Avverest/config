@@ -84,6 +84,7 @@ define-command kak-ide-keymap-git-enable -docstring %{
     map global kak-ide-git B ': git blame-jump<ret>'           -docstring 'jump to commit that blamed this line'
     map global kak-ide-git l ': git log<ret>'                  -docstring 'log'
     map global kak-ide-git L ': kak-ide-git-log-line<ret>'     -docstring 'log for selected lines'
+    map global kak-ide-git f ': fzf-git-changed<ret>'          -docstring 'changed files (fzf)'
     map global kak-ide-git d ': git diff<ret>'                 -docstring 'diff'
     map global kak-ide-git s ': git status<ret>'               -docstring 'status'
     map global kak-ide-git h ': git show-diff<ret>'            -docstring 'refresh gutter (hunks)'
