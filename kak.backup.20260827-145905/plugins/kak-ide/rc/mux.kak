@@ -213,25 +213,22 @@ define-command -hidden kak-ide-mux-zoom-toggle %{
 # for that script to delete itself and reads the result file. It does not care
 # how the script is launched — only that it runs somewhere.
 
-declare-option -docstring %{
-    kak_ide_fzf_height: height, in percent of the window, of the bottom panel
-    fzf pickers open in
-} int kak_ide_fzf_height 40
-
 define-command -hidden -params 1 kak-ide-fzf-term %{
     kak-ide-mux-guard
     evaluate-commands %sh{
         case "$kak_opt_kak_ide_mux" in
             wezterm)
-                wezterm cli split-pane --bottom --percent "$kak_opt_kak_ide_fzf_height" \
-                    --pane-id "$kak_client_env_WEZTERM_PANE" \
-                    --cwd "${kak_client_env_PWD:-$PWD}" \
-                    -- sh -c "$1" >/dev/null 2>&1
+                # Full-screen picker: split, zoom, run. The pane closes itself
+                # when the script finishes, which un-zooms the layout for free.
+                pane=$(wezterm cli split-pane --bottom --percent 40 \
+                           --pane-id "$kak_client_env_WEZTERM_PANE" \
+                           --cwd "${kak_client_env_PWD:-$PWD}" \
+                           -- sh -c "$1" 2>/dev/null)
+                [ -n "$pane" ] && wezterm cli zoom-pane --pane-id "$pane" --zoom >/dev/null 2>&1
                 ;;
             tmux)
-                TMUX="$kak_client_env_TMUX" tmux split-window -v \
-                    -t "${kak_client_env_TMUX_PANE}" \
-                    -p "$kak_opt_kak_ide_fzf_height" \
+                TMUX="$kak_client_env_TMUX" tmux split-window \
+                    -t "${kak_client_env_TMUX_PANE}" -p 40 \
                     sh -c "$1" >/dev/null 2>&1
                 ;;
         esac

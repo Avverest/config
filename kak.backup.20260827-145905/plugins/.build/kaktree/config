@@ -1,0 +1,57 @@
+try %{ 
+
+    require-module kaktree
+
+    hook global WinSetOption filetype=kaktree %{
+        remove-highlighter buffer/numbers
+        remove-highlighter buffer/matching
+        remove-highlighter buffer/wrap
+        remove-highlighter buffer/show-whitespaces
+        try %{ remove-highlighter window/indent-guides }
+    }
+
+    declare-option -docstring "command used to spawn a terminal for kaktree" \
+        str termcmd 'kak-ide-termcmd'
+
+    define-command -override -docstring "kaktree-toggle: Toggle kaktree window on and off" \
+    kaktree-toggle %{ evaluate-commands %sh{
+        : "$kak_opt_kaktreeclient" "$kak_quoted_client_list" \
+          "$kak_opt_kaktree__active" "$kak_opt_kaktree__onscreen"
+        alive=no
+        eval "set -- $kak_quoted_client_list"
+        for c; do [ "$c" = "$kak_opt_kaktreeclient" ] && alive=yes; done
+
+        if [ "$kak_opt_kaktree__active" = true ] && [ "$kak_opt_kaktree__onscreen" = true ] && [ "$alive" = yes ]; then
+            printf "%s\n" "remove-hooks global kaktree-exit
+                           evaluate-commands -client %opt{kaktreeclient} quit
+                           set-option global kaktree__onscreen false"
+        else
+            printf "%s\n" "evaluate-commands kaktree-enable
+                           set-option global kaktree__onscreen false
+                           hook -group kaktree-exit global ClientClose ${kak_opt_kaktreeclient} %{ kaktree-disable }
+                           evaluate-commands kaktree--display
+                           set-option global kaktree__onscreen true"
+        fi
+    }}
+
+    set-option global kaktree_double_click_duration '0.5'
+    set-option global kaktree_indentation 1
+    set-option global kaktree_dir_icon_open  '▾ 📂'
+    set-option global kaktree_dir_icon_close '▸ 📁'
+    set-option global kaktree_file_icon      '⠀⠀📄'
+ } catch %{
+    echo -debug "Error while evaluating 'kaktree' configuration: %val{error}"
+
+    set-option -add current plug_conf_errors "Error while evaluating 'kaktree' configuration:"
+    set-option -add current plug_conf_errors %sh{ printf "\n    " }
+    set-option -add current plug_conf_errors %val{error}
+    set-option -add current plug_conf_errors %sh{ printf "\n\n" }
+
+    hook -once -group plug-conf-err global WinDisplay .* %{
+        info -style modal -title "plug.kak error" "%opt{plug_conf_errors}"
+        on-key %{
+            info -style modal
+            execute-keys -with-maps -with-hooks %val{key}
+        }
+    }
+}

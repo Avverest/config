@@ -162,8 +162,6 @@ evaluate-commands %sh{
     fi
 }
 
-plug "h-youhei/kakoune-surround"
-
 kak-ide-keymap-treesitter-enable
 kak-ide-keymap-git-enable
 kak-ide-keymap-surround-enable

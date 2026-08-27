@@ -87,19 +87,18 @@ commands back with `kak -p "$kak_session"`. Same shape fzf.kak uses.
 
 ### surround.kak
 
-A keymap shim over the vendored [h-youhei/kakoune-surround][surr] plugin, which
-provides the verbs themselves. Delimiters are read as the next keypress: the
-named aliases (`b`/`r`/`B`/`a`/`q`/`Q`/`g`) map to bracket and quote pairs, and
-any other character surrounds with itself. Bound under `,m`:
+Reads its delimiter as the next keypress, so any character works with no list
+of blessed characters. Bound under `,m`:
 
     a <c>         wrap selection in <c>
     d <c>         delete the surrounding <c>
     r <c> <d>     replace <c> with <d>
-    s <c>         select the surrounding pair
+    q / Q / g     quick ' " `
     t / T         wrap in / remove an HTML tag
-    C / S         change / select the surrounding HTML tag
 
-[surr]: https://github.com/h-youhei/kakoune-surround
+Note the file cannot contain a literal unpaired bracket: Kakoune counts
+brackets while parsing `%{…}` blocks even inside quoted strings, which is why
+the quote shortcuts use `%§…§`.
 
 ### keymap.kak
 

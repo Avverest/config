@@ -59,6 +59,7 @@ want normal '<a-space>' 'drop all but main selection' '<a-space>  drop all but m
 
 echo
 echo "── leader bindings survive kakrc (load-order shadowing) ──────"
+want user x 'write-quit'                ',x  write & quit'
 want user a 'lsp-code-actions'          ',a  code actions'
 want user l 'enter-user-mode lsp'       ',l  LSP mode'
 want user e 'kaktree-toggle'            ',e  file explorer'

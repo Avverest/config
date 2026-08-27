@@ -54,8 +54,7 @@ removed. Use `:doc` and the leader menus, which read the real bindings.
 ## The kak-ide plugin
 
 `plugins/kak-ide/` is the only locally-authored plugin (the others —
-`plug.kak`, `fzf.kak`, `kaktree`, `kakoune-surround` — are vendored clones;
-don't edit them).
+`plug.kak`, `fzf.kak`, `kaktree` — are vendored clones; don't edit them).
 `rc/kak-ide.kak` is the entry point and sources its siblings in a fixed order:
 
     project → mux → languages → tooling → splits → files → surround → keymap
@@ -79,10 +78,10 @@ don't edit them).
 - **splits.kak** — a "split" is a second Kakoune *client* of the same session
   (`kak -c $kak_session`) in a multiplexer pane, so panes share buffers,
   registers and language servers. Kakoune has no internal splits.
-- **surround.kak** — now only a keymap shim binding `,m` to the vendored
-  `kakoune-surround` plugin, which supplies the verbs. Delimiters are still read
-  as the next keypress; named aliases (`b`/`r`/`B`/`a`/`q`/`Q`/`g`) cover the
-  bracket and quote pairs and any other character surrounds with itself.
+- **surround.kak** — reads its delimiter as the next keypress, so any character
+  works with no list of blessed characters. Note the file cannot contain a
+  literal unpaired bracket: Kakoune counts brackets while parsing `%{…}` blocks
+  even inside quoted strings, which is why the quote shortcuts use `%§…§`.
 - **files.kak** — yazi in a zoomed pane. wezterm cannot hand back a pane's
   stdout, so the selection travels via `--chooser-file` and a background poll
   feeds `edit` commands back with `kak -p "$kak_session"`. Same shape fzf.kak uses.
@@ -129,8 +128,8 @@ describing them. That residue has now been removed:
 - **`kak-ide-split-guard`** (`splits.kak`) — deleted. A self-described
   back-compat alias for `kak-ide-mux-guard` with no callers left.
 - **`kak_ide_surround_open`** (`surround.kak`) — deleted. Declared but never
-  read or written. (Moot since: the whole local surround implementation was
-  replaced by the vendored `kakoune-surround` plugin.)
+  read or written; the opening delimiter is carried in
+  `kak_ide_surround_key`.
 - **`plugins/kak-ide/README.md`** — rewritten from scratch (323 → 150 lines)
   against the shipped code. Every command and option it names was verified to
   exist.

@@ -96,5 +96,6 @@ kak/kak-ide-trusted
 # Kakoune plugins installed by plug.kak — each is its own git checkout,
 # so committing them here would nest repositories.
 kak/plugins/fzf.kak/
+kak/plugins/kakoune-surround/
 kak/plugins/kaktree/
 kak/plugins/plug.kak/
