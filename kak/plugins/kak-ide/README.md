@@ -111,11 +111,28 @@ Opt-in binding groups, called from `kakrc`:
 
 Git hunk and diagnostic navigation hang off `,)` / `,(`.
 
+Git verbs hang off `,g`, wrapping Kakoune's own `git.kak`:
+
+| Key | Does |
+| --- | --- |
+| `,g b` | toggle blame annotations (`git blame` is itself the toggle) |
+| `,g B` | jump to the commit that last touched the line under the cursor |
+| `,g l` | `git log` |
+| `,g L` | `git log -L` for the selected line range |
+| `,g d` | `git diff` |
+| `,g s` | `git status` |
+| `,g h` / `,g H` | show / hide the hunk gutter |
+
+Blame annotations are filled in asynchronously (`git blame --incremental`
+feeds them back through `kak -p`), so they land a moment after the keypress
+rather than instantly. With blame on, `<ret>` is mapped to `git blame-jump`.
+
 ## Commands
 
     kak-ide-status                   what kak-ide resolved for this buffer
     kak-ide-modeline-enable          show formatter/linter in the modeline
     kak-ide-close-buffer             close, asking if modified
+    kak-ide-git-log-line             git log -L for the selected line range
 
 ## Options
 

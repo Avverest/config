@@ -112,17 +112,17 @@ for c in kak-ide-status kak-ide-project-root kak-ide-tooling-info kak-ide-format
          kak-ide-format-on-save-toggle kak-ide-close-buffer kak-ide-files \
          kak-ide-split-right kak-ide-split-below kak-ide-split-zoom \
          surround delete-surround change-surround \
-         kak-ide-mux-status kaktree-toggle; do
+         kak-ide-mux-status kaktree-toggle kak-ide-git-log-line; do
     printf "try %%{ alias global __probe %s } catch %%{ echo -to-file %s %s }\n" "$c" "$res" "$c"
 done | kak -p "$sess"
-for m in kak-ide-split kak-ide-surround kak-ide-next kak-ide-prev; do
+for m in kak-ide-split kak-ide-surround kak-ide-next kak-ide-prev kak-ide-git; do
     printf "try %%{ map global %s <F12> nop; unmap global %s <F12> } catch %%{ echo -to-file %s mode:%s }\n" "$m" "$m" "$res" "$m"
 done | kak -p "$sess"
 sleep 1
 if [ -s "$res" ]; then
     printf 'commands/modes   FAIL(missing: %s)\n' "$(tr '\n' ' ' < "$res")"; fail=1
 else
-    printf 'commands/modes   all 15 commands and 4 user modes present  ok\n'
+    printf 'commands/modes   all 16 commands and 5 user modes present  ok\n'
 fi
 rm -f "$res"
 printf 'quit!\n' | kak -p "$sess" 2>/dev/null

@@ -77,17 +77,50 @@ define-command kak-ide-keymap-git-enable -docstring %{
     map global kak-ide-next b ': buffer-next<ret>'               -docstring 'next buffer'
     map global kak-ide-prev b ': buffer-previous<ret>'           -docstring 'previous buffer'
 
+    map global user g ': enter-user-mode kak-ide-git<ret>' -docstring 'git…'
     map global user G ': git show-diff<ret>' -docstring 'refresh git gutter'
+
+    map global kak-ide-git b ': git blame<ret>'                -docstring 'toggle blame annotations'
+    map global kak-ide-git B ': git blame-jump<ret>'           -docstring 'jump to commit that blamed this line'
+    map global kak-ide-git l ': git log<ret>'                  -docstring 'log'
+    map global kak-ide-git L ': kak-ide-git-log-line<ret>'     -docstring 'log for selected lines'
+    map global kak-ide-git d ': git diff<ret>'                 -docstring 'diff'
+    map global kak-ide-git s ': git status<ret>'               -docstring 'status'
+    map global kak-ide-git h ': git show-diff<ret>'            -docstring 'refresh gutter (hunks)'
+    map global kak-ide-git H ': git hide-diff<ret>'            -docstring 'hide gutter'
 
     hook global -group kak-ide-git WinCreate .*    %{ try %{ git show-diff } }
     hook global -group kak-ide-git BufWritePost .* %{ try %{ git show-diff } }
-    echo -markup "{Information}kak-ide: git hunk nav bound (]c / [c), gutter auto-refreshes"
+    echo -markup "{Information}kak-ide: git hunk nav bound (]c / [c), gutter auto-refreshes, ,g for git"
+}
+
+# ─── Blame ───────────────────────────────────────────────────────────────────
+#
+# `git blame` in Kakoune's own git.kak is already a toggle: blame_toggle tries
+# to add the `window/git-blame` highlighter and, when that fails because the
+# highlighter is already there, clears the flags and unmaps <ret> instead. So
+# the binding below is just `git blame` — a wrapper that tracked its own state
+# and called `git hide-blame` only duplicated that and broke the second toggle.
+#
+# Note the annotations arrive asynchronously (git blame --incremental feeds
+# them back with `kak -p`), so they appear a moment after the key is pressed.
+
+define-command kak-ide-git-log-line -docstring %{
+    kak-ide-git-log-line: git log restricted to the selected line range
+} %{
+    evaluate-commands %sh{
+        first="${kak_selection_desc%%,*}"; first="${first%%.*}"
+        last="${kak_selection_desc##*,}";  last="${last%%.*}"
+        if [ "$first" -gt "$last" ]; then tmp="$first"; first="$last"; last="$tmp"; fi
+        printf '%s\n' "git log -L ${first},${last}:'${kak_buffile}'"
+    }
 }
 
 # ─── Modes used by the git bracket-nav above ─────────────────────────────────
 
 declare-user-mode kak-ide-next
 declare-user-mode kak-ide-prev
+declare-user-mode kak-ide-git
 
 hook global ModuleLoaded fzf-buffer %{
     define-command -override -hidden fzf-delete-buffer %{ evaluate-commands %sh{

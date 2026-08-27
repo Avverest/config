@@ -85,6 +85,14 @@ want buffers D 'delete-buffers'       'buffers D  delete all'
 dupes buffers
 
 echo
+echo "── git submode ──────────────────────────────────────────────"
+want user 'g' 'enter-user-mode kak-ide-git' ',g       git submode'
+want kak-ide-git 'b' 'git blame'             'git b    toggle blame'
+want kak-ide-git 'B' 'git blame-jump'        'git B    jump to blamed commit'
+want kak-ide-git 'L' 'kak-ide-git-log-line'  'git L    log for selected lines'
+dupes kak-ide-git
+
+echo
 echo "── structural + unimpaired nav ──────────────────────────────"
 # kak-tree-sitter's text-objects.kak binds object f/t/a/T and is sourced after
 # the kak-lsp block in kakrc, so tree-sitter wins these. That is intended --
