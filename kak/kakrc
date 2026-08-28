@@ -177,6 +177,7 @@ plug "h-youhei/kakoune-surround"
 # offering to write it.
 plug "Delapouite/kakoune-buffers"
 
+kak-ide-diagnostics-enable
 kak-ide-keymap-treesitter-enable
 kak-ide-keymap-git-enable
 kak-ide-keymap-surround-enable

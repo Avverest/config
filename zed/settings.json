@@ -60,14 +60,14 @@
   },
   "colorize_brackets": true,
   "toolbar": {
-    "breadcrumbs": false,
+    "breadcrumbs": true,
     "quick_actions": false,
     "selections_menu": false,
     "code_actions": false,
     "agent_review": false,
   },
   "status_bar": {
-    "experimental.show": true,
+    "experimental.show": false,
     "active_language_button": true,
     "cursor_position_button": true,
     "show_active_file": true
@@ -123,16 +123,16 @@
   "vim_mode": false,
   "helix_mode": true,
   "ui_font_family": "Iosevka",
-  // "buffer_font_family": "Iosevka Term",
+  "buffer_font_family": "Iosevka Term",
   // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
-  "ui_font_size": 20,
-  "buffer_font_size": 20,
+  "ui_font_size": 19,
+  "buffer_font_size": 24,
   "markdown_preview_font_size": 23,
   "markdown_preview": {
     "max_width": 1100
   },
-  "buffer_line_height": "comfortable",
-  "buffer_font_weight": 200,
+  "buffer_line_height": "standard",
+  "buffer_font_weight": 400,
   "ui_font_weight": 400,
   "preferred_line_length": 140,
   "show_whitespaces": "none",
@@ -150,6 +150,8 @@
     "button": true,
     "font_weight": 250,
     "dock": "right",
+    "line_height": "standard",
+    "font_size": 20
   },
   "tab_size": 2,
   "unstable.ui_density": "compact",
