@@ -151,20 +151,62 @@ vim.lsp.config("eslint", {
 	},
 })
 
--- Клавиша к :LspEslintFixAll. Команду создаёт on_attach самого сервера
--- (см. lsp/eslint.lua в nvim-lspconfig), поэтому маппинг вешается буферно
--- и только там, где eslint реально подключился.
+-- Клавиша «починить все автофиксимые ошибки» — одна и та же <leader>cf для
+-- eslint и biome. Маппинг буферный: вешается только там, где нужный сервер
+-- реально подключился, поэтому в biome-проекте на неё сядет biome, в
+-- eslint-проекте — eslint, и конфликта за клавишу нет.
+--
+-- Реализации разные. У eslint команду :LspEslintFixAll создаёт on_attach
+-- самого сервера (см. lsp/eslint.lua в nvim-lspconfig). У biome такой команды
+-- нет, поэтому его source.fixAll.biome запрашивается через обычный
+-- code action с apply = true — меню не показывается, фикс применяется сразу.
 vim.api.nvim_create_autocmd("LspAttach", {
 	callback = function(args)
 		local client = vim.lsp.get_client_by_id(args.data.client_id)
-		if client and client.name == "eslint" then
+		if not client then
+			return
+		end
+
+		if client.name == "eslint" then
 			vim.keymap.set("n", "<leader>cf", "<cmd>LspEslintFixAll<CR>", {
 				buffer = args.buf,
 				desc = "ESLint: починить все автофиксимые ошибки",
 			})
+		elseif client.name == "biome" then
+			vim.keymap.set("n", "<leader>cf", function()
+				vim.lsp.buf.code_action({
+					context = { only = { "source.fixAll.biome" }, diagnostics = {} },
+					apply = true,
+				})
+			end, {
+				buffer = args.buf,
+				desc = "Biome: починить все автофиксимые ошибки",
+			})
 		end
 	end,
 })
+
+-- Biome: линтер и форматтер для JS/TS/JSON в одном бинарнике, альтернатива
+-- связке eslint + prettier.
+--
+-- Biome и eslint включены оба одновременно — это не конфликт и не дублирование
+-- диагностики. Оба конфига в nvim-lspconfig объявлены с workspace_required =
+-- true, а их root_dir возвращает nil, если рядом с файлом (вверх по дереву)
+-- нет конфига именно этого инструмента: biome ищет biome.json/biome.jsonc,
+-- eslint — eslint.config.* и .eslintrc*. Сервер без root_dir не стартует.
+--
+-- В итоге проект сам выбирает себе линтер: где лежит biome.json — поднимется
+-- только biome, где eslint.config.js — только eslint. Ручного переключателя
+-- не нужно. В проекте с обоими конфигами поднимутся оба, но это осознанная
+-- настройка самого проекта, а не случайность конфига редактора.
+--
+-- В отличие от eslint здесь не нужен run = "onSave": biome написан на Rust
+-- и линтует файл за единицы миллисекунд, отбирать процессор у tsserver во
+-- время набора ему нечем (сравни с комментарием к eslint выше).
+--
+-- Переопределять в vim.lsp.config тут нечего: конфиг из nvim-lspconfig
+-- (lsp/biome.lua) подходит как есть — он же сам находит бинарник в
+-- node_modules/.bin проекта и падает обратно на глобальный.
 
 -- Emmet раскрывает сокращения вида `div>ul>li` в разметку. В .tsx/.jsx он
 -- отвечает почти на любое слово и засоряет меню дополнения, конкурируя с
@@ -180,6 +222,7 @@ vim.lsp.enable({
 	"cssls", -- vscode-css-language-server
 	"vtsls", -- @vtsls/language-server (JS + TS), см. комментарий выше
 	"eslint", -- vscode-eslint-language-server: диагностика + фиксы
+	"biome", -- диагностика + фиксы там, где в проекте есть biome.json
 	"emmet_ls", -- emmet для html/css
 	"rust_analyzer",
 	"gopls",

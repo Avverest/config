@@ -46,30 +46,75 @@ local ts_parsers = {
 }
 require("nvim-treesitter").install(ts_parsers)
 
+-- Каталог с запросами в runtimepath.
+--
+-- В ветке main плагин раскладывает queries/ не в своём корне, а на уровень
+-- глубже — в runtime/queries/. В runtimepath же vim.pack добавляет только
+-- корень плагина, поэтому vim.treesitter.query.get() ищет запрос по пути
+-- <плагин>/queries/<язык>/indents.scm и не находит ничего.
+--
+-- Для подсветки это незаметно: highlights.scm плагин грузит сам, своим кодом.
+-- А вот indents.scm читается штатным механизмом runtimepath, и без этой
+-- строки get_indents() получает пустой набор правил и возвращает отступ 0 для
+-- любой строки — то есть indentexpr есть, вызывается, но всегда отвечает
+-- «нулевой уровень», и курсор на новой строке встаёт в первую колонку.
+vim.opt.runtimepath:append(
+	vim.fs.joinpath(vim.fn.stdpath("data"), "site/pack/core/opt/nvim-treesitter/runtime")
+)
+
 vim.api.nvim_create_autocmd("FileType", {
 	callback = function(args)
 		-- запускаем подсветку только если для языка есть парсер
 		local ok = pcall(vim.treesitter.start, args.buf)
 		if ok then
+			-- Отступ по дереву разбора. Он вытесняет smartindent и cindent
+			-- (см. комментарий к отступам в config/options.lua), а когда для
+			-- узла нет правила — возвращает -1, и тогда отступ берёт на себя
+			-- autoindent.
 			vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 		end
+		-- Ветки else тут нет намеренно: без парсера остаётся indentexpr,
+		-- который проставил штатный ftplugin языка. Перетирать его нечем —
+		-- у treesitter для этого языка правил всё равно нет.
 	end,
 })
 
 -- ---------------------------------------------------------------------------
 -- Форматтеры (conform.nvim)
 -- ---------------------------------------------------------------------------
+-- Форматтер для JS/TS/JSON выбирается по проекту, а не задаётся раз навсегда:
+-- в одних проектах biome, в других prettier + eslint.
+--
+-- Признак — biome.json (или biome.jsonc) вверх по дереву от самого файла, тот
+-- же маркер, по которому поднимается LSP-сервер biome (см. config/lsp.lua).
+-- Благодаря этому редактор и линтер всегда сходятся во мнении: не бывает
+-- случая, когда диагностику даёт biome, а форматирует prettier по своим
+-- правилам, переставляя кавычки и запятые туда-обратно на каждое сохранение.
+--
+-- Список для conform возвращается функцией: она вызывается на каждое
+-- форматирование с номером буфера, поэтому один Neovim на несколько проектов
+-- в разных вкладках выберет каждому своё. vim.fs.root кэширует обход дерева,
+-- отдельный кэш здесь не нужен.
+local function js_formatter(bufnr)
+	if vim.fs.root(bufnr, { "biome.json", "biome.jsonc" }) then
+		return { "biome" }
+	end
+	return { "prettier" }
+end
+
 require("conform").setup({
 	formatters_by_ft = {
+		-- html/css/scss: biome умеет css, но html у него всё ещё за флагом,
+		-- поэтому здесь prettier без вариантов
 		html = { "prettier" },
 		css = { "prettier" },
 		scss = { "prettier" },
-		javascript = { "prettier" },
-		javascriptreact = { "prettier" },
-		typescript = { "prettier" },
-		typescriptreact = { "prettier" },
-		json = { "prettier" },
-		jsonc = { "prettier" },
+		javascript = js_formatter,
+		javascriptreact = js_formatter,
+		typescript = js_formatter,
+		typescriptreact = js_formatter,
+		json = js_formatter,
+		jsonc = js_formatter,
 		rust = { "rustfmt" },
 		lua = { "stylua" },
 		go = { "goimports", "gofmt" },
