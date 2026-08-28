@@ -38,22 +38,11 @@ map("n", "]B", "<cmd>blast<CR>", { desc = "Последний буфер" })
 map("n", "[B", "<cmd>bfirst<CR>", { desc = "Первый буфер" })
 map("n", "<leader>`", "<C-^>", { desc = "Предыдущий активный буфер" })
 
--- Буферы, перечисленные в том же порядке, что и в tabline
+-- Открытые буферы, в порядке их номеров
 local function listed_buffers()
 	return vim.tbl_filter(function(buf)
 		return vim.bo[buf].buflisted
 	end, vim.api.nvim_list_bufs())
-end
-
--- <leader>1..9 — прыжок к N-му буферу слева направо по tabline
-for i = 1, 9 do
-	map("n", "<leader>" .. i, function()
-		local target = listed_buffers()[i]
-		if target == nil then
-			return vim.notify("Буфера №" .. i .. " нет", vim.log.levels.WARN)
-		end
-		vim.api.nvim_set_current_buf(target)
-	end, { desc = "Перейти к буферу №" .. i })
 end
 
 -- ---------------------------------------------------------------------------

@@ -99,3 +99,11 @@ kak/plugins/fzf.kak/
 kak/plugins/kakoune-surround/
 kak/plugins/kaktree/
 kak/plugins/plug.kak/
+
+# Отчёты :PerfReport из nvim/lua/config/perf.lua — вывод замеров,
+# сохраняемый вручную из буфера. Генерируется, в репозитории не нужен.
+nvim/perftest
+
+# Отдельные клоны, вложенные в ~/.config: у каждого свой git.
+/nvim-minimax/
+/MiniMax/

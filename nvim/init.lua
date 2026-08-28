@@ -6,6 +6,7 @@ require("config.keymaps")
 require("config.langmap")
 require("config.mini") -- после options.lua: нужен уже выставленный mapleader
 require("config.buffers")
+require("config.workspace") -- окна и вкладки; до hints.lua: clue берёт desc
 require("config.indent")
 require("config.refactor")
 require("config.completion") -- до lsp.lua: оттуда берутся возможности клиента

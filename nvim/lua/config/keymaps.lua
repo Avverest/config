@@ -24,16 +24,4 @@ end, { desc = "Форматировать буфер/выделение" })
 -- Убрать подсветку поиска
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
--- Перемещение между окнами
-map("n", "<C-h>", "<C-w>h")
-map("n", "<C-j>", "<C-w>j")
-map("n", "<C-k>", "<C-w>k")
-map("n", "<C-l>", "<C-w>l")
-
--- Buffers
-map("n", "ge", "G")
-
--- Row
-map({ "n", "v" }, "mm", "%")
-map({ "n", "v" }, "gh", "^")
-map({ "n", "v" }, "gl", "$")
+-- Окна и вкладки — в config/workspace.lua
