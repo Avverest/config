@@ -207,3 +207,6 @@ set-face global ts_text_title                   "%opt{fg_main}+b"
 set-face global ts_conceal                      "%opt{fg_dim}+i"
 set-face global ts_special                      "%opt{blue}"
 set-face global ts_spell                        "%opt{fg_main}"
+
+# Faces emitted by kak-tree-sitter that this theme does not set explicitly.
+source "%val{config}/colors/ts-common/ts-fill.kak"

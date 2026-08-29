@@ -183,8 +183,17 @@ kak-ide-keymap-git-enable
 kak-ide-keymap-surround-enable
 kak-ide-pairs-enable
 kak-ide-cursor-enable
+kak-ide-keymap-numbers-enable
 
-colorscheme catppuccin_latte
+# The default, applied first so there is always a theme even on a fresh
+# checkout. `theme.conf` below overrides it when one has been picked with
+# `,T` (kak-ide-theme), which is how the choice survives a restart.
+colorscheme modus-vivendi
+
+evaluate-commands %sh{
+    [ -r "$kak_config/theme.conf" ] && cat "$kak_config/theme.conf"
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Fuzzy finding (fzf.kak)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -383,6 +392,7 @@ map global user r ': require-module fzf-recent; fzf-recent<ret>'         -docstr
 declare-user-mode clipboard
 
 map global user y ': enter-user-mode clipboard<ret>' -docstring 'clipboard…'
+map global user T ': kak-ide-theme-pick<ret>'       -docstring 'pick colorscheme'
 
 map global clipboard y '<a-|>pbcopy<ret>'       -docstring 'copy selection to system clipboard'
 map global clipboard Y 'x<a-|>pbcopy<ret>'      -docstring 'copy whole line(s) to system clipboard'

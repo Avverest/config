@@ -8,8 +8,8 @@ local config = wezterm.config_builder()
 -- local font = fonts.monitor(fonts.lilex, 500)
 local font = fonts.monitor(fonts.iosevka, 500)
 
--- local theme = themes.dark.azu
-local theme = themes.light.mexico
+local theme = themes.dark.azu
+-- local theme = themes.light.mexico
 
 config = {
 	automatically_reload_config = true,
@@ -24,7 +24,7 @@ config = {
 	enable_tab_bar = false,
 	window_decorations = "RESIZE",
 	window_padding = { top = 5, left = 5, right = 5, bottom = 5 },
-	leader = { key = ";", mods = 'CTRL', timeout_ms = 500 },
+	leader = { key = ";", mods = "CTRL", timeout_ms = 500 },
 	keys = getKeys(wezterm),
 	window_frame = {
 		font = wezterm.font({ family = font.family, weight = "Bold" }),

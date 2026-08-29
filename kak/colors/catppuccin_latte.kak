@@ -160,3 +160,8 @@ set-face global ts_variable_other_member        "%opt{teal}"
 set-face global ts_variable_parameter           "%opt{maroon}+i"
 set-face global ts_warning                      "%opt{peach}+b"
 
+
+# Faces emitted by kak-tree-sitter that this theme does not set explicitly.
+set-face global ts_function_method ts_function
+set-face global ts_keyword_storage ts_keyword
+source "%val{config}/colors/ts-common/ts-fill.kak"

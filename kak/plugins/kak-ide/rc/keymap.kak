@@ -89,6 +89,8 @@ define-command kak-ide-keymap-git-enable -docstring %{
     map global kak-ide-git s ': git status<ret>'               -docstring 'status'
     map global kak-ide-git h ': git show-diff<ret>'            -docstring 'refresh gutter (hunks)'
     map global kak-ide-git H ': git hide-diff<ret>'            -docstring 'hide gutter'
+    map global kak-ide-git m ': kak-ide-merge<ret>'            -docstring 'merge view [ours|base|theirs]'
+    map global kak-ide-git M ': kak-ide-merge-close<ret>'      -docstring 'close merge view'
 
     hook global -group kak-ide-git WinCreate .*    %{ try %{ git show-diff } }
     hook global -group kak-ide-git BufWritePost .* %{ try %{ git show-diff } }

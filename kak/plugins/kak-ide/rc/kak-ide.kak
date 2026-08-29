@@ -2,7 +2,7 @@ declare-option -docstring "kak-ide version" str kak_ide_version "0.1.0-phase1"
 
 evaluate-commands %sh{
     dir="${kak_source%/*}"
-    for m in project mux languages tooling diagnostics splits files surround pairs cursor jump keymap; do
+    for m in project mux languages tooling diagnostics splits merge files surround pairs cursor jump theme numbers keymap; do
         printf 'source "%s/%s.kak"\n' "$dir" "$m"
     done
 }
