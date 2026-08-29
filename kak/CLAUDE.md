@@ -75,7 +75,8 @@ don't edit them).
   indent hooks, comment tokens and `lsp_language_id` that Kakoune only ships for
   the base filetypes.
 - **tooling.kak** — resolves formatter/linter per project root (biome →
-  eslint/prettier → LSP), cached per buffer. Format-on-save defaults on.
+  eslint/prettier → LSP), cached per buffer. Formatting is on demand only
+  (`kak-ide-format`, bound to `,=`); nothing formats on write.
 - **splits.kak** — a "split" is a second Kakoune *client* of the same session
   (`kak -c $kak_session`) in a multiplexer pane, so panes share buffers,
   registers and language servers. Kakoune has no internal splits.

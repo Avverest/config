@@ -50,7 +50,6 @@ hook global WinSetOption filetype=(?:json|markdown|yaml|toml) %{
 
 hook global BufSetOption filetype=(?:json|markdown|yaml) %{
     set-option buffer formatcmd "prettier --stdin-filepath '%val{buffile}'"
-    hook buffer -group format-on-save BufWritePre .* format
 }
 
 hook global BufSetOption filetype=lua %{
@@ -364,7 +363,7 @@ map global normal , ': enter-user-mode user<ret>' -docstring 'leader menu'
 map global normal <space> ',' -docstring 'clear selections to main'
 map global normal <a-space> '<a-,>' -docstring 'clear main selection'
 
-map global user = ':format<ret>'          -docstring 'format buffer'
+map global user = ':kak-ide-format<ret>'  -docstring 'format buffer'
 map global user c ':comment-line<ret>'    -docstring 'toggle line comment'
 map global user n ':buffer-next<ret>'     -docstring 'next buffer'
 map global user N ':buffer-previous<ret>' -docstring 'previous buffer'

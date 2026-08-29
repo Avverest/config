@@ -1,7 +1,4 @@
 
-declare-option -docstring "format the buffer on write when a formatter is resolved" \
-    bool kak_ide_format_on_save true
-
 declare-option -docstring "formatter resolved for this buffer (biome|prettier|lsp|none)" \
     str kak_ide_formatter none
 
@@ -96,7 +93,9 @@ define-command -hidden kak-ide-detect-tooling %{
             *)
                 cmd="" ;;
         esac
-        printf "set-option buffer formatcmd '%s'\n" "$(kkq "$cmd")"
+        if [ -n "$cmd" ]; then
+            printf "set-option buffer formatcmd '%s'\n" "$(kkq "$cmd")"
+        fi
 
         case "$lint_attach" in
             biome)
@@ -153,7 +152,12 @@ hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|css|scss|less
     kak-ide-detect-tooling
 }
 
-# ─── Format on save ──────────────────────────────────────────────────────────
+# ─── Format on demand ────────────────────────────────────────────────────────
+#
+# Formatting is explicit: nothing runs on write. The resolver above still picks
+# biome/prettier/stylua per project and leaves it in `formatcmd`, so the command
+# below reformats with whatever the project actually uses, falling back to the
+# language server when no external formatter resolved.
 
 define-command kak-ide-format -docstring %{
     kak-ide-format: format the buffer with the resolved formatter (or the LSP)
@@ -163,28 +167,6 @@ define-command kak-ide-format -docstring %{
             echo 'format'
         else
             echo 'try %{ lsp-formatting-sync }'
-        fi
-    }
-}
-
-hook global BufSetOption filetype=(?:javascript|typescript|jsx|tsx|css|scss|less|json|lua) %{
-    hook buffer -group kak-ide-format BufWritePre .* %{
-        evaluate-commands %sh{
-            [ "$kak_opt_kak_ide_format_on_save" = true ] && echo 'kak-ide-format'
-        }
-    }
-}
-
-define-command kak-ide-format-on-save-toggle -docstring %{
-    kak-ide-format-on-save-toggle: turn format-on-save on or off for this session
-} %{
-    evaluate-commands %sh{
-        if [ "$kak_opt_kak_ide_format_on_save" = true ]; then
-            echo 'set-option global kak_ide_format_on_save false'
-            echo 'echo -markup %{{Information}kak-ide: format-on-save OFF}'
-        else
-            echo 'set-option global kak_ide_format_on_save true'
-            echo 'echo -markup %{{Information}kak-ide: format-on-save ON}'
         fi
     }
 }

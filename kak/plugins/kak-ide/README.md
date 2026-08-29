@@ -58,10 +58,10 @@ re-supplied.
 ### tooling.kak — formatter / linter
 
 Resolved per project root and cached per buffer: biome (when a `biome.json`
-is present) → eslint/prettier → LSP. Format-on-save defaults on.
+is present) → eslint/prettier → LSP. Formatting is on demand only — nothing
+runs on write.
 
-    kak-ide-format                   format the buffer
-    kak-ide-format-on-save-toggle    turn format-on-save on or off
+    kak-ide-format                   format the buffer (also `,=`)
     kak-ide-tooling-info             show what resolved for this buffer
 
 ### splits.kak — splits as panes
@@ -149,7 +149,6 @@ rather than instantly. With blame on, `<ret>` is mapped to `git blame-jump`.
 | `kak_ide_root_markers` | `.git .hg … Makefile` | project root markers; VCS root wins |
 | `kak_ide_project_root` | (computed) | this buffer's project root |
 | `kak_ide_ts_server` | `auto` | `auto` (prefers vtsls) / `vtsls` / `typescript-language-server` |
-| `kak_ide_format_on_save` | `true` | format on write when a formatter resolved |
 | `kak_ide_formatter` | (computed) | `biome` / `prettier` / `lsp` / `none` |
 | `kak_ide_linter` | (computed) | `biome` / `eslint` / `lsp` / `none` |
 

@@ -33,66 +33,61 @@ set-option global lsp_diagnostic_line_hint_sign    '▪'
 declare-option -docstring "show diagnostic text at the end of the offending line" \
     bool kak_ide_inlay_diagnostics true
 
-declare-option -docstring "pop up hover info (diagnostics and types) on idle" \
+declare-option -docstring "show the diagnostic under the cursor in the status line on idle" \
     bool kak_ide_auto_hover true
 
-# ─── Hover only where there is a diagnostic ──────────────────────────────────
+# ─── Diagnostics in the status line, never over the code ─────────────────────
 #
-# kak-lsp's own lsp-auto-hover-enable fires `lsp-hover` on every NormalIdle,
-# anywhere in the buffer. On a TSX prop that means vtsls dumps the whole
-# inferred type over the code whenever the cursor pauses — the popup competes
-# with what you are reading instead of telling you about a problem.
+# kak-lsp renders hover through `info`, which draws a box over the buffer. With
+# or without `-anchor` it lands on top of the text being edited, so on a long
+# message the offending code disappears behind the very thing describing it.
 #
-# This wraps it: same idle trigger, but the hover request is only sent when the
-# cursor actually sits inside a diagnostic range. Types stay available on
-# demand via `,lh`.
+# The message text is already available without any request: kak-lsp keeps it
+# in lsp_inlay_diagnostics, the line-specs the end-of-line inlay highlighter
+# renders from. Each entry is `<line>|<text>`, the text carrying its own
+# `{InlayDiagnosticError}`-style markup face. Echoing that entry for the cursor
+# line puts the diagnostic in the status line, where nothing covers the buffer.
 #
-# lsp_inline_diagnostics is a range-specs whose entries are
-# `<line>.<col>,<line>.<col>|<FaceName>` (the first field is the timestamp, so
-# it is skipped). Only the line is compared: a column test would leave the
-# popup flickering on and off as the cursor moves along the underlined text.
+# Types stay available on demand via `,lh` (lsp-hover) and `,lH` (scratch
+# buffer), both of which are explicit and therefore not in the way.
 
-define-command -hidden kak-ide-hover-if-diagnostic %{
+define-command -hidden kak-ide-echo-diagnostic %{
     evaluate-commands %sh{
-        eval "set -- $kak_quoted_opt_lsp_inline_diagnostics"
+        eval "set -- $kak_quoted_opt_lsp_inlay_diagnostics"
         shift   # timestamp
-        cursor_line=${kak_cursor_line}
-        for range; do
-            start=${range%%,*}
-            start_line=${start%%.*}
-            end=${range#*,}
-            end_line=${end%%.*}
-            if [ "$cursor_line" -ge "$start_line" ] && [ "$cursor_line" -le "$end_line" ]; then
-                echo 'try lsp-hover'
-                exit
-            fi
+        for spec; do
+            [ "${spec%%|*}" = "$kak_cursor_line" ] || continue
+            text=$(printf '%s' "${spec#*|}" | tr '\n' ' ')
+            printf "echo -markup '%s'" "$(printf '%s' "$text" | sed "s/'/''/g")"
+            exit
         done
+        echo 'echo'
     }
 }
 
 define-command kak-ide-auto-hover-enable -docstring %{
-    kak-ide-auto-hover-enable: pop up hover info on idle, but only on diagnostics
+    kak-ide-auto-hover-enable: show the diagnostic under the cursor in the status line
 } %{
     remove-hooks global kak-ide-auto-hover
     lsp-auto-hover-disable
     hook -group kak-ide-auto-hover global NormalIdle .* %{
-        lsp-check-auto-hover %{ kak-ide-hover-if-diagnostic }
+        kak-ide-echo-diagnostic
     }
 }
 
 define-command kak-ide-auto-hover-disable -docstring %{
-    kak-ide-auto-hover-disable: stop popping up hover info on idle
+    kak-ide-auto-hover-disable: stop showing diagnostics in the status line on idle
 } %{
     remove-hooks global kak-ide-auto-hover
 }
 
 define-command kak-ide-diagnostics-enable -docstring %{
-    kak-ide-diagnostics-enable: show diagnostic text inline and on hover
+    kak-ide-diagnostics-enable: show diagnostic text inline and in the status line
 
     kak-lsp's own lsp-enable already installs the range highlighting and the
     gutter flags; what it leaves off is the message text. This adds the
-    end-of-line inlay and the idle hover box, and trims the hover to keep it
-    about the error rather than a wall of inferred types.
+    end-of-line inlay and the idle status-line echo, neither of which covers
+    the buffer the way an info box does.
 } %{
     try %{
         set-option global lsp_hover_max_info_lines 10
@@ -102,9 +97,9 @@ define-command kak-ide-diagnostics-enable -docstring %{
         kak-ide-auto-hover-enable
 
         map global lsp I ': kak-ide-inlay-diagnostics-toggle<ret>' -docstring 'toggle inline error text'
-        map global lsp D ': kak-ide-auto-hover-toggle<ret>'        -docstring 'toggle auto hover popup'
+        map global lsp D ': kak-ide-auto-hover-toggle<ret>'        -docstring 'toggle status-line diagnostics'
 
-        echo -markup "{Information}kak-ide: diagnostics inline + on hover (,lI / ,lD to toggle)"
+        echo -markup "{Information}kak-ide: diagnostics inline + status line (,lI / ,lD to toggle)"
     }
 }
 
@@ -125,17 +120,17 @@ define-command kak-ide-inlay-diagnostics-toggle -docstring %{
 }
 
 define-command kak-ide-auto-hover-toggle -docstring %{
-    kak-ide-auto-hover-toggle: turn the idle hover popup on or off
+    kak-ide-auto-hover-toggle: turn the idle status-line diagnostic on or off
 } %{
     evaluate-commands %sh{
         if [ "$kak_opt_kak_ide_auto_hover" = true ]; then
             echo 'kak-ide-auto-hover-disable'
             echo 'set-option global kak_ide_auto_hover false'
-            echo 'echo -markup %{{Information}kak-ide: auto hover OFF}'
+            echo 'echo -markup %{{Information}kak-ide: status-line diagnostics OFF}'
         else
             echo 'kak-ide-auto-hover-enable'
             echo 'set-option global kak_ide_auto_hover true'
-            echo 'echo -markup %{{Information}kak-ide: auto hover ON}'
+            echo 'echo -markup %{{Information}kak-ide: status-line diagnostics ON}'
         fi
     }
 }

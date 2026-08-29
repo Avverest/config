@@ -109,7 +109,7 @@ kak -d -s "$sess" >/dev/null 2>&1 &
 sleep 3
 res=$(mktemp); rm -f "$res"
 for c in kak-ide-status kak-ide-project-root kak-ide-tooling-info kak-ide-format \
-         kak-ide-format-on-save-toggle kak-ide-close-buffer kak-ide-files \
+         kak-ide-close-buffer kak-ide-files \
          kak-ide-split-right kak-ide-split-below kak-ide-split-zoom \
          surround delete-surround change-surround \
          kak-ide-mux-status kaktree-toggle kak-ide-git-log-line fzf-git-changed; do
