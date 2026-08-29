@@ -164,4 +164,5 @@ set-face global ts_warning                      "%opt{peach}+b"
 # Faces emitted by kak-tree-sitter that this theme does not set explicitly.
 set-face global ts_function_method ts_function
 set-face global ts_keyword_storage ts_keyword
-source "%val{config}/colors/ts-common/ts-fill.kak"
+set-option global ts_common_bridge false
+source "%val{config}/colors/ts-common/ts-common.kak"

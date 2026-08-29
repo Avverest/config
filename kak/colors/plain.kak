@@ -11,5 +11,4 @@ source "%val{runtime}/colors/plain.kak"
 # substitutes nothing. ts-bridge maps the tree-sitter faces onto the theme's
 # own faces, and where those are `default` the result stays default too.
 # That is the theme working as intended, not a gap to fill.
-source "%val{config}/colors/ts-common/ts-bridge.kak"
-source "%val{config}/colors/ts-common/ts-fill.kak"
+source "%val{config}/colors/ts-common/ts-common.kak"

@@ -46,16 +46,38 @@ define-command -override kak-ide-theme-pick \
 
 define-command -override -hidden kak-ide-theme-pick-fzf %{
     evaluate-commands %sh{
-        out=$(mktemp "${TMPDIR:-/tmp}/kak-ide-theme.XXXXXX")
-        printf "%s\n" "kak-ide-fzf-term %{ \
-            for d in '$kak_config/colors' '$kak_runtime/colors'; do \
-                [ -d \"\$d\" ] && for f in \"\$d\"/*.kak; do \
-                    [ -e \"\$f\" ] || continue; f=\${f##*/}; printf '%s\n' \"\${f%.kak}\"; \
-                done; \
-            done | sort -u | fzf --prompt='theme> ' \
-                --preview-window=hidden > '$out'; \
-            [ -s '$out' ] && kak -p '$kak_session' \
-                \"evaluate-commands -client '$kak_client' kak-ide-theme \$(cat '$out')\"; \
-            rm -f '$out' }"
+        tmp=$(mktemp -d "${TMPDIR:-/tmp}"/kak-ide-theme.XXXXXX)
+        chosen="$tmp/chosen"
+        marker="$tmp/running"
+        : > "$marker"
+
+        script="$tmp/run"
+        {
+            printf '#!%s\n' "$(command -v sh)"
+            printf 'for d in %s %s; do\n' \
+                "'$kak_config/colors'" "'$kak_runtime/colors'"
+            printf '  [ -d "$d" ] || continue\n'
+            printf '  for f in "$d"/*.kak; do\n'
+            printf '    [ -e "$f" ] || continue\n'
+            printf '    f=${f##*/}\n'
+            printf '    printf "%%s\\n" "${f%%.kak}"\n'
+            printf '  done\n'
+            printf 'done | sort -u | fzf --prompt="theme> " --preview-window=hidden > %s\n' \
+                "'$chosen'"
+            printf 'rm -f %s\n' "$marker"
+        } > "$script"
+        chmod 755 "$script"
+
+        (
+            while [ -e "$marker" ]; do sleep 0.1; done
+            if [ -s "$chosen" ]; then
+                name=$(head -n 1 "$chosen")
+                [ -n "$name" ] && printf "evaluate-commands -client %s %%{ kak-ide-theme %s }\n" \
+                    "$kak_client" "$name" | kak -p "$kak_session"
+            fi
+            rm -rf "$tmp"
+        ) > /dev/null 2>&1 < /dev/null &
+
+        printf 'kak-ide-fzf-term %%{%s}\n' "$script"
     }
 }

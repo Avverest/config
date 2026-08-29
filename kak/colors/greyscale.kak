@@ -14,7 +14,9 @@ set-face global variable  string
 set-face global constant  value
 set-face global operator  keyword
 set-face global list      keyword
+# `bullet` upstream is `+b` -- bold with no colour -- and ts-bridge maps the
+# four ts_markup_list_* faces onto it, so they rendered unstyled.
+set-face global bullet    keyword
 
 # kak-tree-sitter highlights only via ts_* faces, which this theme predates.
-source "%val{config}/colors/ts-common/ts-bridge.kak"
-source "%val{config}/colors/ts-common/ts-fill.kak"
+source "%val{config}/colors/ts-common/ts-common.kak"

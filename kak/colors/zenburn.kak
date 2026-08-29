@@ -13,8 +13,7 @@ set-face global builtin   type
 set-face global constant  value
 
 # kak-tree-sitter highlights only via ts_* faces, which this theme predates.
-source "%val{config}/colors/ts-common/ts-bridge.kak"
-source "%val{config}/colors/ts-common/ts-fill.kak"
+source "%val{config}/colors/ts-common/ts-common.kak"
 
 # Upstream's Error face is `default,red` -- a red BACKGROUND with no
 # foreground -- so ts_error, which ts-bridge aliases onto it, renders

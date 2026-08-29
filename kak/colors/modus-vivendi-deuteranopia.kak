@@ -209,4 +209,5 @@ set-face global ts_special                      "%opt{blue}"
 set-face global ts_spell                        "%opt{fg_main}"
 
 # Faces emitted by kak-tree-sitter that this theme does not set explicitly.
-source "%val{config}/colors/ts-common/ts-fill.kak"
+set-option global ts_common_bridge false
+source "%val{config}/colors/ts-common/ts-common.kak"
