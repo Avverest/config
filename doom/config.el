@@ -104,15 +104,6 @@
   :init
   (setq! lsp-tailwindcss-add-on-mode t))
 
-;; Rust setup
-(after! lsp-rust
-  (setq! lsp-rust-analyzer-display-chaining-hints t)
-  (setq! lsp-rust-analyzer-max-inlay-hint-length 25)
-  (setq! lsp-rust-analyzer-proc-macro-enable t)
-  (setq! lsp-inlay-hint-enable t)
-  (setq! lsp-rust-analyzer-cargo-watch-command "clippy"))
-
-
 ;; (after! eldoc
 ;;   ;; отключаем автоматическое всплытие/эхо-область
 ;;   (setq eldoc-idle-delay most-positive-fixnum)
@@ -126,15 +117,30 @@
   (treemacs-fringe-indicator-mode 'always)
   )
 
-(after! lsp-mode
-  (setq lsp-auto-guess-root t
-        lsp-restart 'auto-restart
-        lsp-enable-file-watchers nil))
+;; Rust setup
+(after! rustic
+  (setq rustic-lsp-client 'lsp-mode
+        rustic-format-trigger 'on-save          ; rustic-format-on-save is obsolete
+        rustic-cargo-use-last-stored-arguments t))
 
-;; Cargo.toml не всегда лежит в корне репозитория (Tauri: src-tauri/Cargo.toml).
-;; Projectile ищет его только сверху вниз, поэтому сначала находит .git в корне
-;; и отдаёт rust-analyzer весь монорепозиторий вместо крейта — импорты не
-;; резолвятся. Поднимаем Cargo.toml в bottom-up список, чтобы он выигрывал
-;; у .git. На фронтенд не влияет: там Cargo.toml выше по дереву нет.
-(after! projectile
-  (add-to-list 'projectile-project-root-files-bottom-up "Cargo.toml"))
+(after! lsp-rust
+  (setq lsp-rust-analyzer-cargo-watch-command "clippy"
+        lsp-rust-analyzer-proc-macro-enable t
+        lsp-rust-analyzer-experimental-proc-attr-macros t
+        lsp-rust-analyzer-import-granularity "crate"
+        lsp-rust-analyzer-completion-auto-import-enable t
+        ;; inlay hints
+        lsp-rust-analyzer-server-display-inlay-hints t
+        lsp-rust-analyzer-display-chaining-hints t
+        lsp-rust-analyzer-display-closure-return-type-hints t
+        lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial"
+        lsp-rust-analyzer-display-parameter-hints nil
+        lsp-rust-analyzer-binding-mode-hints nil))
+
+(after! lsp-mode
+  (setq
+   lsp-inlay-hint-enable t
+   lsp-auto-guess-root t
+   lsp-restart 'auto-restart
+   lsp-enable-file-watchers nil)
+  (add-hook 'rustic-mode-hook #'lsp-inlay-hints-mode))
