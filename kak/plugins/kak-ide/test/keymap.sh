@@ -59,7 +59,7 @@ want normal '<a-space>' 'clear main selection' '<a-space>  clear main selection'
 
 echo
 echo "── leader bindings survive kakrc (load-order shadowing) ──────"
-want user a 'lsp-code-actions'          ',a  code actions'
+want user a 'kak-ide-code-actions'      ',a  code actions'
 want user l 'enter-user-mode lsp'       ',l  LSP mode'
 want user e 'kaktree-toggle'            ',e  file explorer'
 want user E 'kak-ide-files'             ',E  file manager (yazi)'

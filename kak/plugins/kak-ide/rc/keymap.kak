@@ -1,7 +1,7 @@
 
 # ─── Additions to the existing `,` leader ────────────────────────────────────
 
-map global user a  ': lsp-code-actions<ret>'                -docstring 'code actions'
+map global user a  ': kak-ide-code-actions<ret>'            -docstring 'code actions'
 map global user e  ': kaktree-toggle<ret>'                  -docstring 'file explorer'
 map global user E  ': kak-ide-files<ret>'                   -docstring 'file manager (yazi)'
 

@@ -150,3 +150,78 @@ hook global BufSetOption filetype=lua %{
         hint.await = true
     }
 }
+
+# ─── Tailwind CSS ────────────────────────────────────────────────────────────
+#
+# tailwindcss-language-server supplies class-name completion, colour swatches
+# and hover for the utility classes. It is additive: the buffer already has
+# vtsls (jsx/tsx) or vscode-css-language-server (css), and biome may attach as
+# a linter, so this uses `set-option -add` -- a plain `set-option` would drop
+# whichever server got there first.
+#
+# It only attaches when the project actually uses Tailwind. The v4 setup keeps
+# no JS config at all (`@import "tailwindcss"` in the stylesheet), so a
+# tailwind.config.* probe alone would silently skip v4 projects; the dependency
+# in package.json is what both versions have in common.
+#
+# `settings_section` is load-bearing. The server asks for its configuration via
+# workspace/configuration and publishes nothing until that request is answered
+# with a non-empty tailwindCSS section -- without it the server starts, reports
+# healthy, and returns zero completions.
+#
+# includeLanguages maps the filetypes Kakoune reports to the ones the server
+# understands, otherwise it ignores jsx/tsx buffers entirely.
+
+declare-option -docstring %{
+    Attach tailwindcss-language-server when the project depends on tailwindcss.
+} bool kak_ide_tailwind true
+
+hook global BufSetOption filetype=(?:jsx|tsx|javascript|typescript|css|scss|less) %{
+    kak-ide-detect-root
+    evaluate-commands %sh{
+        : "$kak_opt_kak_ide_project_root" "$kak_opt_kak_ide_tailwind"
+        [ "$kak_opt_kak_ide_tailwind" = true ] || exit 0
+        command -v tailwindcss-language-server >/dev/null 2>&1 || exit 0
+
+        root="$kak_opt_kak_ide_project_root"
+        [ -n "$root" ] || exit 0
+
+        found=no
+        for c in tailwind.config.js tailwind.config.cjs tailwind.config.mjs \
+                 tailwind.config.ts tailwind.config.cts tailwind.config.mts; do
+            [ -f "$root/$c" ] && { found=yes; break; }
+        done
+        if [ "$found" = no ] && [ -f "$root/package.json" ] &&
+           grep -q '"tailwindcss"' "$root/package.json" 2>/dev/null; then
+            found=yes
+        fi
+        [ "$found" = yes ] || exit 0
+
+        cat <<'TOML'
+set-option -add buffer lsp_servers %{
+
+[tailwindcss-language-server]
+args = ["--stdio"]
+root_globs = ["tailwind.config.js", "tailwind.config.cjs", "tailwind.config.mjs", "tailwind.config.ts", "package.json", ".git"]
+settings_section = "tailwindCSS"
+[tailwindcss-language-server.settings.editor]
+tabSize = 2
+[tailwindcss-language-server.settings.tailwindCSS]
+validate = true
+classAttributes = ["class", "className", "ngClass", "class:list"]
+[tailwindcss-language-server.settings.tailwindCSS.includeLanguages]
+jsx = "javascriptreact"
+tsx = "typescriptreact"
+[tailwindcss-language-server.settings.tailwindCSS.lint]
+cssConflict = "warning"
+invalidApply = "error"
+invalidConfigPath = "error"
+invalidScreen = "error"
+invalidTailwindDirective = "error"
+invalidVariant = "error"
+recommendedVariantOrder = "warning"
+unknownAtRules = "warning"
+}
+TOML
+    }
+}

@@ -181,3 +181,69 @@ define-command kak-ide-tooling-info -docstring %{
             "${kak_opt_formatcmd:-(language server)}"
     }
 }
+
+# ─── Code actions with biome attached ────────────────────────────────────────
+#
+# kakoune-lsp resolves a code action by broadcasting codeAction/resolve to
+# *every* server on the buffer and taking whichever answers first
+# (RequestParams::All + results.first() in code_action.rs). It tracks which
+# server owns an action while building the menu, but drops that identity before
+# resolving.
+#
+# biome returns its quickfixes with no `edit` -- only `data`, to be filled in by
+# codeAction/resolve. So picking a biome fix sends biome's action to vtsls too;
+# vtsls does not recognise it and echoes it back with neither `edit` nor
+# `command`. kak-lsp turns that empty action into an empty editor command and
+# sends a bare `evaluate-commands -client <c> -verbatim --`, which fails with
+#
+#     1:1: 'evaluate-commands': wrong argument count
+#
+# and the fix is silently lost. Whether the good reply or the useless one wins
+# is decided by internal server id, so listing biome first does not help.
+#
+# Restricting lsp_servers to biome for the duration of the request scopes both
+# the codeAction and its resolve to biome (kak-lsp reads meta.servers from this
+# option per request), so the round-trip stays within one server.
+#
+# The menu is asynchronous and kak-lsp offers no completion callback, so the
+# full list cannot be restored when the action finishes -- a NormalIdle hook
+# fires while the menu is still open and would put vtsls back before the
+# selection is resolved. Instead the list is restored lazily: on the next
+# BufSetOption (buffer reload, filetype change) the resolver rebuilds it from
+# scratch, and kak-ide-code-actions itself re-derives the scoped list on every
+# call, so a stale narrow list is never observable outside a code action.
+
+define-command kak-ide-code-actions -docstring %{
+    kak-ide-code-actions: code actions, scoped to biome on a biome diagnostic
+} %{
+    evaluate-commands %sh{
+        : "$kak_opt_kak_ide_linter" "$kak_cursor_line" "$kak_quoted_opt_lsp_inlay_diagnostics"
+
+        # Only narrow when the cursor is actually on a line biome flagged.
+        # Anywhere else the full server list stays in place, so vtsls keeps
+        # offering renames, extractions and organize-imports as before.
+        on_diagnostic=no
+        if [ "$kak_opt_kak_ide_linter" = biome ]; then
+            eval "set -- $kak_quoted_opt_lsp_inlay_diagnostics"
+            shift   # timestamp
+            for spec; do
+                [ "${spec%%|*}" = "$kak_cursor_line" ] && { on_diagnostic=yes; break; }
+            done
+        fi
+
+        if [ "$on_diagnostic" = no ]; then
+            echo 'lsp-code-actions'
+            exit 0
+        fi
+
+        cat <<'SCOPED'
+set-option buffer lsp_servers %{
+[biome]
+command = "biome"
+args = ["lsp-proxy"]
+root_globs = ["biome.json", "biome.jsonc"]
+}
+lsp-code-actions
+SCOPED
+    }
+}
