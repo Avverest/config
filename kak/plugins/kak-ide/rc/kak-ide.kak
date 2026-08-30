@@ -9,9 +9,32 @@ evaluate-commands %sh{
 
 # ─── Startup ─────────────────────────────────────────────────────────────────
 
-hook global WinCreate .* %{
+define-command -hidden kak-ide-window-setup %{
     kak-ide-detect-root
-    try %{ lsp-enable-window }
+    try %{ lsp-enable-window } catch %{
+        echo -debug "kak-ide: lsp-enable-window failed: %val{error}"
+    }
+}
+
+hook global WinCreate .* kak-ide-window-setup
+
+hook global -once KakBegin .* %{
+    evaluate-commands -client %val{client} kak-ide-window-setup
+}
+
+declare-option -hidden bool kak_ide_lsp_restarted false
+
+define-command -hidden kak-ide-lsp-restart-deferred %{
+    evaluate-commands %sh{
+        [ "$kak_opt_kak_ide_lsp_restarted" = true ] && exit 0
+        [ -n "$kak_session" ] || exit 0
+        echo 'set-option global kak_ide_lsp_restarted true'
+        (
+            sleep 1
+            printf 'evaluate-commands -client %s %%{ try %%{ lsp-restart } }\n' "$kak_client" |
+                kak -p "$kak_session"
+        ) >/dev/null 2>&1 </dev/null &
+    }
 }
 
 define-command kak-ide-modeline-enable -docstring %{

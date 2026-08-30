@@ -73,7 +73,8 @@ evaluate-commands %sh{
 try %{
     set-option global modelinefmt "%opt{lsp_modeline} %opt{modelinefmt}"
 
-    # ── Inlay hints (inferred types, param names). Comment out if too noisy. ──
+    set-option global lsp_file_watch_support true
+
     lsp-inlay-hints-enable global
 
     # ── Keybindings ──
@@ -121,8 +122,7 @@ plug "andreyorst/kaktree" config %{
             printf "%s\n" "evaluate-commands kaktree-enable
                            set-option global kaktree__onscreen false
                            hook -group kaktree-exit global ClientClose ${kak_opt_kaktreeclient} %{ kaktree-disable }
-                           evaluate-commands kaktree--display
-                           set-option global kaktree__onscreen true"
+                           evaluate-commands kaktree--display set-option global kaktree__onscreen true"
         fi
     }}
 
