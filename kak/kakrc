@@ -86,6 +86,14 @@ try %{
     map global object f '<a-semicolon>lsp-object Function Method<ret>'                   -docstring 'LSP function/method'
     map global object t '<a-semicolon>lsp-object Class Interface Struct<ret>'            -docstring 'LSP type'
     map global object d '<a-semicolon>lsp-diagnostic-object error warning<ret>'          -docstring 'LSP diagnostics'
+
+    map global goto d '<esc>: lsp-definition<ret>'        -docstring 'definition'
+    map global goto y '<esc>: lsp-type-definition<ret>'   -docstring 'type definition'
+    map global goto D '<esc>: lsp-declaration<ret>'       -docstring 'declaration'
+    map global goto m '<esc>: lsp-implementation<ret>'    -docstring 'implementation'
+    map global goto r '<esc>: lsp-references<ret>'        -docstring 'references'
+    map global goto s '<esc>: lsp-goto-document-symbol<ret>' -docstring 'document symbol'
+    map global goto S '<esc>: lsp-workspace-symbol-incr<ret>' -docstring 'workspace symbol'
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -187,7 +195,7 @@ kak-ide-keymap-numbers-enable
 # The default, applied first so there is always a theme even on a fresh
 # checkout. `theme.conf` below overrides it when one has been picked with
 # `,T` (kak-ide-theme), which is how the choice survives a restart.
-colorscheme modus-vivendi
+colorscheme ef-deuteranopia-light
 
 evaluate-commands %sh{
     [ -r "$kak_config/theme.conf" ] && cat "$kak_config/theme.conf"

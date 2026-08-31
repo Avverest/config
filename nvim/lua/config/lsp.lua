@@ -151,6 +151,87 @@ vim.lsp.config("eslint", {
 	},
 })
 
+-- ---------------------------------------------------------------------------
+-- Клавиши LSP.
+--
+-- Маппинги буферные и вешаются на LspAttach: в буфере без сервера (обычный
+-- текст, лог, файл незнакомого типа) клавиши остаются свободны и работают в
+-- своём исходном значении, а не падают с «no client attached».
+--
+-- Что уже есть и здесь не дублируется:
+--   grn — переименовать (перехвачен inc-rename, см. config/refactor.lua),
+--   gra — code action, grr — референсы (picker, см. config/mini.lua),
+--   gri — implementation, grt — type definition, gO — символы документа,
+--   K — hover, <C-s> в insert — signature help,
+--   gd / gD — определение и объявление (config/keymaps.lua),
+--   <leader>e / <leader>q — диагностика (config/keymaps.lua),
+--   <leader>ss / <leader>sS / <leader>sd — символы и диагностика через picker.
+--
+-- Ниже — то, чего в умолчаниях нет: группа <leader>c (code) для действий над
+-- символом и управления самим сервером.
+-- ---------------------------------------------------------------------------
+local function lsp_keymaps(client, buf)
+	local function map(mode, lhs, rhs, desc)
+		vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
+	end
+
+	-- Signature help в normal-режиме. В insert она уже висит на <C-s>
+	-- (умолчание Neovim) и всплывает сама через mini.completion, но когда
+	-- курсор стоит на вызове в normal, вызвать её было нечем.
+	map("n", "<leader>ck", vim.lsp.buf.signature_help, "LSP: сигнатура функции")
+
+	-- Hover-дублёр для тех случаев, когда K занята (например, в буфере с
+	-- man-страницей или в плагинном окне со своим K).
+	map("n", "<leader>ch", vim.lsp.buf.hover, "LSP: документация под курсором")
+
+	-- Входящие вызовы: кто вызывает функцию под курсором. Полезнее референсов,
+	-- когда символ — метод с распространённым именем.
+	map("n", "<leader>ci", vim.lsp.buf.incoming_calls, "LSP: входящие вызовы")
+	map("n", "<leader>co", vim.lsp.buf.outgoing_calls, "LSP: исходящие вызовы")
+
+	-- Code action продублирован под <leader>ca: gra остаётся, но в группе
+	-- <leader>c его видно в окне подсказок рядом с остальными действиями.
+	map({ "n", "x" }, "<leader>ca", vim.lsp.buf.code_action, "LSP: code action")
+
+	-- Переименование — то же, что grn, через ту же inc-rename с предпросмотром.
+	map("n", "<leader>cr", function()
+		vim.api.nvim_feedkeys(vim.keycode("grn"), "m", false)
+	end, "LSP: переименовать символ")
+
+	-- Inlay hints: типы параметров и возвращаемых значений прямо в тексте.
+	-- По умолчанию выключены — они сдвигают строку и мешают читать плотный
+	-- код, поэтому включаются по требованию и только в текущем буфере.
+	if client:supports_method("textDocument/inlayHint") then
+		map("n", "<leader>cH", function()
+			local enabled = vim.lsp.inlay_hint.is_enabled({ bufnr = buf })
+			vim.lsp.inlay_hint.enable(not enabled, { bufnr = buf })
+			vim.notify("Inlay hints: " .. (enabled and "выкл" or "вкл"))
+		end, "LSP: inlay hints вкл/выкл")
+	end
+
+	-- CodeLens: подсказки-действия над строкой («N references», «Run test»).
+	-- Их надо явно обновлять — сервер не присылает их сам после правки.
+	if client:supports_method("textDocument/codeLens") then
+		map({ "n", "x" }, "<leader>cl", vim.lsp.codelens.run, "LSP: выполнить codelens")
+
+		vim.api.nvim_create_autocmd({ "BufEnter", "InsertLeave", "TextChanged" }, {
+			buffer = buf,
+			callback = function()
+				vim.lsp.codelens.refresh({ bufnr = buf })
+			end,
+		})
+	end
+end
+
+-- Управление серверами — не зависит от буфера, поэтому вешается один раз.
+-- :LspRestart, :LspInfo и :LspStop создаёт сам Neovim 0.11+.
+vim.keymap.set("n", "<leader>cR", "<cmd>LspRestart<CR>", {
+	desc = "LSP: перезапустить сервер",
+})
+vim.keymap.set("n", "<leader>cI", "<cmd>checkhealth vim.lsp<CR>", {
+	desc = "LSP: состояние серверов",
+})
+
 -- Клавиша «починить все автофиксимые ошибки» — одна и та же <leader>cf для
 -- eslint и biome. Маппинг буферный: вешается только там, где нужный сервер
 -- реально подключился, поэтому в biome-проекте на неё сядет biome, в
@@ -166,6 +247,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		if not client then
 			return
 		end
+
+		lsp_keymaps(client, args.buf)
 
 		if client.name == "eslint" then
 			vim.keymap.set("n", "<leader>cf", "<cmd>LspEslintFixAll<CR>", {

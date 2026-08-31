@@ -16,6 +16,17 @@ map("n", "gD", vim.lsp.buf.declaration, { desc = "Перейти к объявл
 map("n", "<leader>e", vim.diagnostic.open_float, { desc = "Диагностика под курсором" })
 map("n", "<leader>q", vim.diagnostic.setloclist, { desc = "Диагностика в loclist" })
 
+-- Прыжки по диагностике. ]d / [d есть в умолчаниях 0.11+ и ходят по всем
+-- уровням подряд; ]e / [e — только по ошибкам, чтобы не спотыкаться о
+-- предупреждения и подсказки на файле, где их сотни.
+map("n", "]e", function()
+	vim.diagnostic.jump({ count = 1, severity = vim.diagnostic.severity.ERROR })
+end, { desc = "Следующая ошибка" })
+
+map("n", "[e", function()
+	vim.diagnostic.jump({ count = -1, severity = vim.diagnostic.severity.ERROR })
+end, { desc = "Предыдущая ошибка" })
+
 -- Форматирование (conform.nvim, с fallback на LSP)
 map({ "n", "v" }, "<leader>f", function()
 	require("conform").format({ async = true, lsp_format = "fallback" })

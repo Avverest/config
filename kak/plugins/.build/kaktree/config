@@ -28,8 +28,7 @@ try %{
             printf "%s\n" "evaluate-commands kaktree-enable
                            set-option global kaktree__onscreen false
                            hook -group kaktree-exit global ClientClose ${kak_opt_kaktreeclient} %{ kaktree-disable }
-                           evaluate-commands kaktree--display
-                           set-option global kaktree__onscreen true"
+                           evaluate-commands kaktree--display set-option global kaktree__onscreen true"
         fi
     }}
 

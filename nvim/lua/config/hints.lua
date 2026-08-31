@@ -75,6 +75,8 @@ MiniClue.setup({
 		MiniClue.gen_clues.z(),
 
 		-- Имена групп: без них в окне видно только голые буквы префиксов
+		{ mode = "n", keys = "<Leader>c", desc = "+Код (LSP)" },
+		{ mode = "x", keys = "<Leader>c", desc = "+Код: выделенное" },
 		{ mode = "n", keys = "<Leader>s", desc = "+Поиск (mini.pick)" },
 		{ mode = "n", keys = "<Leader>b", desc = "+Буферы" },
 		{ mode = "n", keys = "<Leader>w", desc = "+Окна" },
