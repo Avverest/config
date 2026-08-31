@@ -34,7 +34,7 @@
   "git_commit_buffer_font_size": 20,
   "git_panel": {
     "dock": "left",
-    "tree_view": true,
+    "tree_view": false,
     "file_icons": true,
     "status_style": "label_color",
     "starts_open": true,
@@ -44,7 +44,7 @@
   },
   "document_folding_ranges": "on",
   "icon_theme": {
-    "mode": "light",
+    "mode": "dark",
     "light": "Zed (Default)",
     "dark": "Zed (Default)",
   },
@@ -112,9 +112,9 @@
     "background_coloring": null,
   },
   "theme": {
-    "mode": "light",
+    "mode": "dark",
     "light": "One Light",
-    "dark": "Kanagawa Dragon",
+    "dark": "Kanagawa Wave",
   },
   "telemetry": {
     "diagnostics": false,

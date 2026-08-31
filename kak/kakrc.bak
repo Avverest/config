@@ -1,0 +1,413 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# General editor behaviour
+# ─────────────────────────────────────────────────────────────────────────────
+set-option global tabstop 4
+set-option global indentwidth 4
+set-option global scrolloff 3,3
+set-option -add global ui_options terminal_assistant=cat
+# Status line, and with it the `:` command prompt, at the top of the terminal.
+set-option -add global ui_options terminal_status_on_top=yes
+set-option global startup_info_version 20260521
+
+evaluate-commands %sh{ command -v rg >/dev/null 2>&1 && echo "set-option global grepcmd 'rg --column --line-number --no-heading --smart-case'" }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plugins (plug.kak) — bootstrapped on first start, then `:plug-install`
+# ─────────────────────────────────────────────────────────────────────────────
+evaluate-commands %sh{
+    plugins="$kak_config/plugins"
+    mkdir -p "$plugins"
+    [ ! -e "$plugins/plug.kak" ] && \
+        git clone -q https://github.com/andreyorst/plug.kak.git "$plugins/plug.kak"
+    printf "%s\n" "source '$plugins/plug.kak/rc/plug.kak'"
+}
+plug "andreyorst/plug.kak" noload
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Appearance
+# ─────────────────────────────────────────────────────────────────────────────
+add-highlighter global/ number-lines -relative -hlcursor
+add-highlighter global/ show-matching
+add-highlighter global/ wrap -word -indent
+add-highlighter global/ regex \h+$ 0:Error
+
+# Indent guides. `-indent` replaces the first space of each indentation level
+# after the first (per `indentwidth`); `-tab` replaces tabulations. They are
+# independent and use different faces, so one static highlighter covers
+# space- and tab-indented buffers at once — no per-buffer detection needed.
+add-highlighter global/ show-whitespaces -indent '│' -tab '│' -tabpad ' ' -lf ' ' -spc ' ' -nbsp ' '
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Filetype, indentation and formatting
+# ─────────────────────────────────────────────────────────────────────────────
+
+hook global WinSetOption filetype=(?:json|markdown|yaml|toml) %{
+    set-option window tabstop 2
+    set-option window indentwidth 2
+    hook window -group expandtab InsertChar \t %{ execute-keys -draft -itersel h@ }
+    hook -once -always window WinSetOption filetype=.* %{ remove-hooks window expandtab }
+}
+
+hook global BufSetOption filetype=(?:json|markdown|yaml) %{
+    set-option buffer formatcmd "prettier --stdin-filepath '%val{buffile}'"
+}
+
+hook global BufSetOption filetype=lua %{
+    evaluate-commands %sh{
+        command -v stylua >/dev/null 2>&1 &&
+            printf "set-option buffer formatcmd %%{stylua --stdin-filepath '%s' -}\n" "$kak_buffile"
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LSP (kakoune-lsp)
+# ─────────────────────────────────────────────────────────────────────────────
+evaluate-commands %sh{
+    if command -v kak-lsp >/dev/null 2>&1; then
+        kak-lsp
+    else
+        echo "echo -debug 'kak-lsp not found on PATH: LSP features disabled'"
+    fi
+}
+
+try %{
+    set-option global modelinefmt "%opt{lsp_modeline} %opt{modelinefmt}"
+
+    set-option global lsp_file_watch_support true
+
+    lsp-inlay-hints-enable global
+
+    # ── Keybindings ──
+    map global user l ':enter-user-mode lsp<ret>'        -docstring 'LSP mode'
+
+    map global insert <tab> '<a-;>:try lsp-snippets-select-next-placeholders catch %{ execute-keys -with-hooks <lt>tab> }<ret>' -docstring 'snippet placeholder / tab'
+
+    map global object a '<a-semicolon>lsp-object<ret>'                                   -docstring 'LSP any symbol'
+    map global object f '<a-semicolon>lsp-object Function Method<ret>'                   -docstring 'LSP function/method'
+    map global object t '<a-semicolon>lsp-object Class Interface Struct<ret>'            -docstring 'LSP type'
+    map global object d '<a-semicolon>lsp-diagnostic-object error warning<ret>'          -docstring 'LSP diagnostics'
+
+    map global goto d '<esc>: lsp-definition<ret>'        -docstring 'definition'
+    map global goto y '<esc>: lsp-type-definition<ret>'   -docstring 'type definition'
+    map global goto D '<esc>: lsp-declaration<ret>'       -docstring 'declaration'
+    map global goto m '<esc>: lsp-implementation<ret>'    -docstring 'implementation'
+    map global goto r '<esc>: lsp-references<ret>'        -docstring 'references'
+    map global goto s '<esc>: lsp-goto-document-symbol<ret>' -docstring 'document symbol'
+    map global goto S '<esc>: lsp-workspace-symbol-incr<ret>' -docstring 'workspace symbol'
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# kak-ide — the local IDE layer (see plugins/kak-ide/README.md)
+# ─────────────────────────────────────────────────────────────────────────────
+source "%val{config}/plugins/kak-ide/rc/kak-ide.kak"
+
+plug "andreyorst/kaktree" config %{
+    require-module kaktree
+
+    hook global WinSetOption filetype=kaktree %{
+        remove-highlighter buffer/numbers
+        remove-highlighter buffer/matching
+        remove-highlighter buffer/wrap
+        remove-highlighter buffer/show-whitespaces
+    }
+
+    declare-option -docstring "command used to spawn a terminal for kaktree" \
+        str termcmd 'kak-ide-termcmd'
+
+    define-command -override -docstring "kaktree-toggle: Toggle kaktree window on and off" \
+    kaktree-toggle %{ evaluate-commands %sh{
+        : "$kak_opt_kaktreeclient" "$kak_quoted_client_list" \
+          "$kak_opt_kaktree__active" "$kak_opt_kaktree__onscreen"
+        alive=no
+        eval "set -- $kak_quoted_client_list"
+        for c; do [ "$c" = "$kak_opt_kaktreeclient" ] && alive=yes; done
+
+        if [ "$kak_opt_kaktree__active" = true ] && [ "$kak_opt_kaktree__onscreen" = true ] && [ "$alive" = yes ]; then
+            printf "%s\n" "remove-hooks global kaktree-exit
+                           evaluate-commands -client %opt{kaktreeclient} quit
+                           set-option global kaktree__onscreen false"
+        else
+            printf "%s\n" "evaluate-commands kaktree-enable
+                           set-option global kaktree__onscreen false
+                           hook -group kaktree-exit global ClientClose ${kak_opt_kaktreeclient} %{ kaktree-disable }
+                           evaluate-commands kaktree--display set-option global kaktree__onscreen true"
+        fi
+    }}
+
+    set-option global kaktree_double_click_duration '0.5'
+    set-option global kaktree_indentation 1
+    set-option global kaktree_dir_icon_open  '▾ 📂'
+    set-option global kaktree_dir_icon_close '▸ 📁'
+    set-option global kaktree_file_icon      '⠀⠀📄'
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tree-sitter (kak-tree-sitter): grammar-aware highlighting + structural selection
+# ─────────────────────────────────────────────────────────────────────────────
+# The daemon holds a socket in ${XDG_RUNTIME_DIR:-$TMPDIR}/kak-tree-sitter and
+# records its pid beside it. Its Drop impl calls remove_dir_all on both, but
+# they are files, not directories -- so a daemon that dies without unwinding
+# (crash, SIGKILL, reboot with a persistent TMPDIR) leaves the pair behind.
+#
+# `--init` then finds a socket, assumes a live server and hands off to it, and
+# the dead daemon never connects back. That connect-back is what injects the
+# `BufSetOption filetype=...` hooks that set tree_sitter_lang and install the
+# highlighter, so the failure is silent and total: no syntax highlighting in
+# any language, with only "connect ... failed" in the daemon log.
+#
+# Clear the pair when the recorded pid is gone. `ps -p` is what kak-tree-sitter
+# itself uses for the liveness check, so this agrees with it. A live daemon is
+# left strictly alone.
+evaluate-commands %sh{
+    if ! command -v kak-tree-sitter >/dev/null 2>&1; then
+        echo "echo -debug 'kak-tree-sitter not found on PATH: tree-sitter highlighting disabled'"
+        exit
+    fi
+
+    kts_dir="${XDG_RUNTIME_DIR:-$TMPDIR}/kak-tree-sitter"
+    kts_pid=$(cat "$kts_dir/pid" 2>/dev/null)
+
+    if [ -e "$kts_dir/socket" ] && ! ps -p "${kts_pid:-0}" >/dev/null 2>&1; then
+        rm -f "$kts_dir/socket" "$kts_dir/pid"
+        echo "echo -debug 'kak-tree-sitter: cleared stale socket (pid ${kts_pid:-none} not running)'"
+    fi
+
+    kak-tree-sitter -dks --init "${kak_session}"
+}
+
+plug "h-youhei/kakoune-surround"
+
+# Buffer list, indexed picker and bulk deletes. Its own `buffers` user mode is
+# self-contained (it binds no global keys), so only the entry point below is
+# wired up. `d` is remapped to kak-ide-close-buffer: the plugin's own delete is
+# plain `delete-buffer`, which fails outright on a modified buffer instead of
+# offering to write it.
+plug "Delapouite/kakoune-buffers"
+
+kak-ide-diagnostics-enable
+kak-ide-keymap-treesitter-enable
+kak-ide-keymap-git-enable
+kak-ide-keymap-surround-enable
+kak-ide-pairs-enable
+kak-ide-cursor-enable
+kak-ide-keymap-numbers-enable
+
+# The default, applied first so there is always a theme even on a fresh
+# checkout. `theme.conf` below overrides it when one has been picked with
+# `,T` (kak-ide-theme), which is how the choice survives a restart.
+colorscheme ef-deuteranopia-light
+
+evaluate-commands %sh{
+    [ -r "$kak_config/theme.conf" ] && cat "$kak_config/theme.conf"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fuzzy finding (fzf.kak)
+# ─────────────────────────────────────────────────────────────────────────────
+plug "andreyorst/fzf.kak" config %{
+    require-module fzf
+    require-module fzf-file
+    require-module fzf-grep
+
+    set-option global fzf_implementation      'fzf'
+    set-option global fzf_file_command        'fd --type f --follow --hidden --exclude .git'
+    set-option global fzf_grep_command        'rg --line-number --no-column --no-heading --color=never --smart-case '''''
+    set-option global fzf_preview             true
+
+    set-option global fzf_highlight_command %sh{
+        if command -v bat >/dev/null 2>&1; then
+            echo 'bat --color=always --style=numbers --paging=never {}'
+        else
+            echo 'cat {}'
+        fi
+    }
+    set-option global fzf_grep_preview_command %sh{ command -v bat >/dev/null 2>&1 && echo bat || echo cat }
+
+    set-option global fzf_preview_pos    'right'
+    set-option global fzf_preview_width  '65%'
+    set-option global fzf_preview_height '65%'   ;# used if pos is ever set to top/bottom
+
+    set-option global fzf_preview_tmux_height '70%'
+    set-option global fzf_tmux_height         '40%'
+
+    # Route fzf's picker pane through kak-ide's multiplexer bridge, so it works
+    # under wezterm as well as tmux. fzf.kak truncates this option at the first
+    # space and appends the script as a single %{...} argument, so it must name
+    # exactly one command and nothing else.
+    set-option global fzf_terminal_command 'kak-ide-fzf-term'
+
+    declare-option -hidden str fzf_project_root_sh %{
+        dir="${kak_buffile%/*}"
+        [ -d "$dir" ] || dir="$PWD"
+        root=$(cd "$dir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)
+        if [ -z "$root" ]; then
+            d="$dir"
+            while [ -n "$d" ] && [ "$d" != "/" ]; do
+                for marker in .git .hg .svn .jj .project-root package.json go.mod Cargo.toml pyproject.toml Makefile; do
+                    if [ -e "$d/$marker" ]; then root="$d"; break 2; fi
+                done
+                d="${d%/*}"
+            done
+        fi
+        [ -n "$root" ] || root="$PWD"
+    }
+
+    define-command -docstring "fzf-project-files: fuzzy-find files under the current project root" \
+    fzf-project-files %{
+        require-module fzf
+        evaluate-commands %sh{
+            eval "$kak_opt_fzf_project_root_sh"
+            if command -v fd >/dev/null 2>&1; then
+                items="fd --type f --follow --hidden --exclude .git"
+            elif command -v rg >/dev/null 2>&1; then
+                items="rg -L --hidden --files --glob '!.git/*'"
+            else
+                items="find -L . -type f -not -path '*/.git/*'"
+            fi
+            printf "%s\n" "info -title %{fzf project files} %{root: ${root}}"
+            printf "%s\n" "fzf -kak-cmd %{edit -existing} -preview -items-cmd %{cd '${root}' && ${items}} -filter %{sed 's|^|${root}/|'} -fzf-args %{--reverse}"
+        }
+    }
+
+    define-command -docstring "fzf-project-grep: fuzzy-search file contents under the current project root" \
+    fzf-project-grep %{
+        require-module fzf
+        evaluate-commands %sh{
+            eval "$kak_opt_fzf_project_root_sh"
+            if command -v rg >/dev/null 2>&1; then
+                rg_cmd="rg --line-number --no-column --no-heading --color=never --smart-case --max-count=50"
+                items="${rg_cmd} -- '' | head -n 2000"
+                reload="--disabled --bind 'start:reload:${rg_cmd} -- {q} 2>/dev/null | head -n 2000' --bind 'change:reload:sleep 0.05; ${rg_cmd} -- {q} 2>/dev/null | head -n 2000'"
+            else
+                items="grep -RHn '' . | head -n 2000"
+                reload=""
+            fi
+            if command -v bat >/dev/null 2>&1; then
+                preview="-preview -preview-cmd %{--preview '(bat --color=always --style=plain --highlight-line {2} ${root}/{1} || cat ${root}/{1}) 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
+            else
+                preview="-preview -preview-cmd %{--preview 'cat ${root}/{1} 2>/dev/null' --preview-window=\${pos}:+{2}-/2}"
+            fi
+            printf "%s\n" "info -title %{fzf project grep} %{root: ${root}}"
+            printf "%s\n" "fzf -kak-cmd %{evaluate-commands} ${preview} -items-cmd %{cd '${root}' && ${items} 2>/dev/null} -filter %{sed -E 's|([^:]+):([^:]+):.*|edit -existing ${root}/\\1; execute-keys \\2gvc|'} -fzf-args %{--reverse --delimiter=':' -n'3..' ${reload}}"
+        }
+    }
+
+    # ── Changed files (git) ──
+    #
+    # `fzf-git` (the plugin's VCS module) lists `git ls-tree HEAD` — every
+    # tracked file, which is what ,f already gives. What is actually wanted
+    # day to day is the short list of files with uncommitted changes, so this
+    # builds the picker off `git status` instead.
+    #
+    # Parsing notes, all of which `--porcelain=v1 -z` exists to solve:
+    #   * paths are NUL-separated, so spaces and newlines in names are safe
+    #     (without -z, `sp ace.txt` comes back shell-quoted with dquotes)
+    #   * a rename entry is TWO NUL fields: `R  <new>` then `<old>`. The new
+    #     name comes first, so the extra field is dropped, not the useful one.
+    #   * XY is the two-char status; `??` is untracked, `D` in either column
+    #     means the file is gone from the worktree and cannot be opened, so
+    #     deletions are filtered out rather than offered as dead entries.
+    # The preview diffs against HEAD, not the worktree: plain `git diff` is
+    # empty for an already-staged file and would fall through to showing the
+    # file's plain contents. Untracked files have no diff either way, so they
+    # fall back to contents by design.
+    # Paths are repo-relative; the filter prefixes the root so `edit` resolves
+    # them from any cwd.
+
+    define-command -docstring "fzf-git-changed: fuzzy-find files with uncommitted changes" \
+    fzf-git-changed %{
+        require-module fzf
+        evaluate-commands %sh{
+            root=$(git rev-parse --show-toplevel 2>/dev/null)
+            if [ -z "$root" ]; then
+                printf "%s\n" "echo -markup %{{Error}not inside a git repository}"
+                exit
+            fi
+
+            # `tr` does the NUL splitting, not awk: macOS ships BSD awk, whose
+            # RS is a single character and cannot be NUL -- `RS="\0"` there
+            # yields ONE record holding the entire status output. `tr` is also
+            # in POSIX. Rename lookahead is then a flag carried to the next line.
+            items="cd '${root}' && git status --porcelain=v1 -z | tr '\\0' '\\n' | awk 'skip { skip=0; next } { xy=substr(\$0,1,2); path=substr(\$0,4); if (xy ~ /^R/ || xy ~ /^.R/) skip=1; if (xy ~ /D/) next; if (path != \"\") print xy \"\\t\" path }'"
+
+            if command -v bat >/dev/null 2>&1; then
+                preview="--preview '(git -C ${root} diff --color=always HEAD -- {2} | sed 1,4d | grep . || bat --color=always --style=plain ${root}/{2} || cat ${root}/{2}) 2>/dev/null'"
+            else
+                preview="--preview '(git -C ${root} diff --color=always HEAD -- {2} | sed 1,4d | grep . || cat ${root}/{2}) 2>/dev/null'"
+            fi
+
+            if [ -z "$(eval "$items")" ]; then
+                printf "%s\n" "echo -markup %{{Information}no uncommitted changes}"
+                exit
+            fi
+
+            printf "%s\n" "info -title %{fzf changed files} %{root: ${root}}"
+            printf "%s\n" "fzf -kak-cmd %{edit -existing} -items-cmd %{${items}} -filter %{sed 's|^[^\t]*\t|${root}/|'} -fzf-args %{--reverse -m --delimiter='\t' --with-nth=1,2 --nth=2 ${preview}}"
+        }
+    }
+
+    # ── Bindings ──
+
+    map global fzf 'P' ': fzf-project-files<ret>' -docstring 'find file in project (VCS root)'
+    map global fzf 'G' ': fzf-project-grep<ret>'  -docstring 'grep in project (VCS root)'
+    map global fzf 'c' ': fzf-git-changed<ret>'   -docstring 'changed files (git status)'
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# New-user friendliness: "which-key" style discovery
+# ─────────────────────────────────────────────────────────────────────────────
+set-option global autoinfo command|onkey
+
+# ── Leader: `,` instead of `<space>` ──
+#
+# `<space>` is not a configurable leader in Kakoune — it is a hard-coded key
+# that enters `user` mode. So the two keys swap roles outright:
+#   ,          enter user mode (the leader menu below)
+#   <space>    clear selections to only the main one   (was `,`)
+#   <a-space>  clear the main selection                (was `<a-,>`)
+# The right-hand sides are raw keys, not commands, so they keep working inside
+# counts and macros the way the originals did.
+map global normal , ': enter-user-mode user<ret>' -docstring 'leader menu'
+map global normal <space> ',' -docstring 'clear selections to main'
+map global normal <a-space> '<a-,>' -docstring 'clear main selection'
+
+map global user = ':kak-ide-format<ret>'  -docstring 'format buffer'
+map global user c ':comment-line<ret>'    -docstring 'toggle line comment'
+map global user n ':buffer-next<ret>'     -docstring 'next buffer'
+map global user N ':buffer-previous<ret>' -docstring 'previous buffer'
+map global user k ':kak-ide-close-buffer<ret>' -docstring 'close buffer (asks if modified)'
+
+# `,b` → buffers submode (kakoune-buffers): indexed list, first/last/modified
+# jumps, `o` to close all but this one. Three of its verbs are overridden:
+#   b  pick-buffers          — list where each buffer has its own key, so `,bb`
+#                              switches; the stock `info-buffers` only drew a
+#                              static info box with nothing bound to it
+#   d  kak-ide-close-buffer — prompts on a modified buffer instead of failing
+#   f  fzf-buffer           — fuzzy picker in place of the plain `:buffer ` prompt
+try %{
+    map global user b ': enter-user-mode buffers<ret>'  -docstring 'buffers…'
+    map global buffers b ': pick-buffers<ret>'          -docstring 'pick (one key per buffer)'
+    map global buffers d ': kak-ide-close-buffer<ret>'  -docstring 'delete (asks if modified)'
+    map global buffers f ': require-module fzf-buffer; fzf-buffer<ret>' -docstring 'find (fzf)'
+} catch %{
+    map global user b ':buffer '          -docstring 'switch buffer (type name, <tab> completes)'
+}
+
+# ── Pickers (,f files  ,/ search) — buffers live under ,b ──
+map global user f ': fzf-project-files<ret>'                 -docstring 'find file in project'
+map global user / ': fzf-project-grep<ret>'                  -docstring 'search in project'
+map global user F ': require-module fzf-file; fzf-file buffile-dir<ret>' -docstring 'find file next to current buffer'
+map global user r ': require-module fzf-recent; fzf-recent<ret>'         -docstring 'recent files'
+
+# ── System clipboard (macOS pbcopy/pbpaste) ──
+declare-user-mode clipboard
+
+map global user y ': enter-user-mode clipboard<ret>' -docstring 'clipboard…'
+map global user T ': kak-ide-theme-pick<ret>'       -docstring 'pick colorscheme'
+
+map global clipboard y '<a-|>pbcopy<ret>'       -docstring 'copy selection to system clipboard'
+map global clipboard Y 'x<a-|>pbcopy<ret>'      -docstring 'copy whole line(s) to system clipboard'
+map global clipboard d '|pbcopy<ret>'           -docstring 'cut selection to system clipboard'
+map global clipboard p '<a-!>pbpaste<ret>'      -docstring 'paste system clipboard after'
+map global clipboard P '!pbpaste<ret>'          -docstring 'paste system clipboard before'
+map global clipboard R '|pbpaste<ret>'          -docstring 'replace selection with system clipboard'

@@ -1,9 +1,11 @@
 # LIGHT 
 # theme = 'zed_onelight'
-theme = 'spacebones_light'
+# theme = 'spacebones_light'
 # theme = 'github_light'
 # theme = 'cyan_light'
 # theme = 'everforest_light'
+# theme = 'flatwhite'
+# theme = 'flexoki_light'
 
 # DARK
 # theme = 'tokyonight'
@@ -14,6 +16,8 @@ theme = 'spacebones_light'
 # theme = 'autumn_night'
 # theme = 'kanagawa'
 # theme = 'everforest_dark'
+# theme = 'ferra'
+theme = 'flexoki_dark'
 
 
 [editor]
