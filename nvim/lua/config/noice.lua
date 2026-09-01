@@ -51,6 +51,7 @@ require("noice").setup({
 	},
 
 	notify = { enabled = true, view = "mini" }, -- vim.notify от плагинов
+  popupmenu = { enabled = false },
 
 	-- Меню дополнения (и в режиме вставки, и для :команд) рисует сам Neovim.
 	-- Со встроенным работают pumheight/pummaxwidth и подгонка высоты под
