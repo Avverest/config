@@ -7,6 +7,7 @@ local config = wezterm.config_builder()
 
 -- local font = fonts.monitor(fonts.lilex, 500)
 local font = fonts.monitor(fonts.iosevka, 500)
+-- local font = fonts.monitor(fonts.jb, 500)
 
 local theme = themes.dark.trmnx_dark_gogh
 -- local theme = themes.light.mexico

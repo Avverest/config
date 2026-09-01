@@ -3,14 +3,10 @@
 local map = vim.keymap.set
 
 -- ---------------------------------------------------------------------------
--- Список: mini.tabline рисует буферы строкой сверху.
--- setup() сам выставляет showtabline=2 и подменяет 'tabline'.
--- Иконки берутся из mini.icons (настроен в mini.lua).
+-- Строка буферов сверху не рисуется: список открытых буферов смотрим в пикере
+-- (<leader>bl / <leader>sb), переключаемся по gn / gp. Вкладка экрана экономится.
 -- ---------------------------------------------------------------------------
-require("mini.tabline").setup({
-	show_icons = true,
-	tabpage_section = "right", -- счётчик вкладок справа, список буферов — от левого края
-})
+vim.o.showtabline = 0
 
 local MiniBufremove = require("mini.bufremove")
 MiniBufremove.setup()

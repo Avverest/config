@@ -17,8 +17,8 @@ local variants = function(s, m, i)
 end
 
 local height = {
-	[Fonts.iosevka] = variants(1.0, 1.0, 1.0),
-	[Fonts.lilex] = variants(1.0, 1.0, 1.2),
+	[Fonts.iosevka] = variants(1.0, 1.1, 1.0),
+	[Fonts.lilex] = variants(1.0, 1.1, 1.2),
 	[Fonts.jb] = variants(1.3, 1.1, 1.0),
 }
 local size = {

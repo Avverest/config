@@ -16,7 +16,11 @@ require("mini.jump2d").setup({
 })
 
 require("mini.surround").setup()
-require("mini.cmdline").setup()
+require("mini.cmdline").setup({
+  autopeek = {
+    enable = false
+  }
+})
 
 -- ---------------------------------------------------------------------------
 -- Иконки: mini.pick рисует значки файлов только при активном mini.icons
