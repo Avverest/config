@@ -1,37 +1,116 @@
 -- Автодополнение при наборе (mini.completion).
---
--- Зачем модуль, если в Neovim есть встроенное vim.lsp.completion: встроенное
--- всплывает только на «триггерных» символах сервера. У rust_analyzer это
--- `:`, `.`, `'`, `(` — после точки подсказки будут, а при наборе обычного
--- слова нет. mini.completion срабатывает на любой букве (с задержкой delay).
---
--- Работает в две ступени: сначала LSP, если тот молчит — fallback_action
--- (<C-n>, слова из буфера). Меню — нативный popup Vim, поэтому нечёткий
--- подбор даёт флаг fuzzy в completeopt (options.lua), а иконки видов
--- символов — MiniIcons.tweak_lsp_kind() из mini.lua.
---
--- Клавиши <CR>/<Tab>/<S-Tab> настроены не здесь, а в config/mini.lua через
--- mini.keymap (шаги pmenu_*): они делят эти клавиши с mini.pairs и сниппетами.
--- Ручной вызов меню: <C-Space> (на macOS эта комбинация может быть занята
--- системным переключением раскладки), fallback вручную — <A-Space>.
+
 
 require("mini.completion").setup({
-	delay = { completion = 100, info = 100, signature = 50 },
+	-- info = 10^7: окно документации само не всплывает. Иначе оно
+	-- открывалось на каждом переборе пунктов, занимало низ экрана и меню
+	-- переворачивалось вверх, закрывая строку набора. Показ — по <C-k>.
+	delay = { completion = 100, info = 10, signature = 50 },
 
-	window = {
-		info = { border = "rounded" },
-		signature = { border = "rounded" },
-	},
 
-	lsp_completion = {
-		-- omnifunc, а не completefunc: оставляет completefunc свободным
-		-- и соответствует привычному <C-x><C-o>
-		source_func = "omnifunc",
-	},
+	-- lsp_completion = {
+	-- 	-- omnifunc, а не completefunc: оставляет completefunc свободным
+	-- 	-- и соответствует привычному <C-x><C-o>
+	-- 	source_func = "omnifunc",
+	-- },
 
 	-- Если LSP ничем не ответил — слова из текущего буфера
 	fallback_action = "<C-n>",
 })
+
+-- ---------------------------------------------------------------------------
+-- Документация к пункту меню — по <C-k>, а не сама по себе.
+--
+-- Автопоказ выключен через delay.info выше. Публичной функции «показать
+-- info» в mini.completion нет: окно рисует H.show_info_window, которое
+-- дёргается из H.auto_info по событию CompleteChanged. Достаём H из
+-- замыкания — тем же способом, что и для mini.clue в hints.lua.
+--
+-- Дальше нюанс: открытое окно закрылось бы на первом же CompleteChanged
+-- (перебор пунктов). Поэтому пока окно открыто, auto_info подменяется
+-- заглушкой — окно живёт до Esc.
+-- ---------------------------------------------------------------------------
+local function setup_info_key()
+	local MiniCompletion = require("mini.completion")
+
+	local ok, H = pcall(function()
+		local i = 1
+		while true do
+			local name, value = debug.getupvalue(MiniCompletion.stop, i)
+			if name == nil then
+				break
+			end
+			if name == "H" then
+				return value
+			end
+			i = i + 1
+		end
+	end)
+
+	if not (ok and type(H) == "table" and type(H.show_info_window) == "function") then
+		vim.notify(
+			"mini.completion: не удалось привязать <C-k> к окну документации",
+			vim.log.levels.WARN
+		)
+		return
+	end
+
+	local auto_info = H.auto_info
+	local pinned = false
+
+	-- Вернуть штатное поведение: окно закрыть, автопоказ разморозить
+	local function unpin()
+		if not pinned then
+			return
+		end
+		pinned = false
+		H.auto_info = auto_info
+		H.close_action_window(H.info)
+	end
+
+	vim.keymap.set("i", "<C-k>", function()
+		-- Вне меню дополнения клавиша не при делах
+		if vim.fn.pumvisible() == 0 then
+			return
+		end
+
+		-- Повторное нажатие убирает окно
+		if pinned then
+			unpin()
+			return
+		end
+
+		-- Событие CompleteChanged mini.completion кладёт в H.info.event;
+		-- без него show_info_window не знает, где рисовать окно.
+		if H.info.event == nil then
+			H.info.event = vim.v.event
+		end
+
+		pinned = true
+		H.info.id = H.info.id + 1
+		H.show_info_window(H.info.id)
+
+		-- Заглушка вместо auto_info: перебор пунктов больше не гасит окно
+		H.auto_info = function() end
+	end, { desc = "Показать документацию к пункту (закрыть — Esc)" })
+
+	-- Esc закрывает окно; если окна нет — обычный выход из режима вставки
+	vim.keymap.set("i", "<Esc>", function()
+		if pinned then
+			unpin()
+			return ""
+		end
+		return "<Esc>"
+	end, { expr = true, desc = "Закрыть документацию или выйти из вставки" })
+
+	-- Уход из вставки любым другим путём тоже снимает заморозку
+	vim.api.nvim_create_autocmd("InsertLeave", {
+		group = vim.api.nvim_create_augroup("CompletionInfoUnpin", { clear = true }),
+		callback = unpin,
+	})
+end
+
+setup_info_key()
 
 -- Возможности клиента для lsp.lua: дополнение + резолв additionalTextEdits
 -- (авто-импорты при подтверждении пункта)

@@ -4,8 +4,7 @@
 --   K — hover, <C-s> (insert) — signature help
 local map = vim.keymap.set
 
--- Explore
-map("n", "<leader>E", "<cmd>Explore<CR>")
+-- <leader>E — файловое дерево mini.files (настроено в config/refactor.lua)
 map("n", "<CR>", ":")
 
 -- Навигация LSP

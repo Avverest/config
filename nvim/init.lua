@@ -12,4 +12,5 @@ require("config.refactor")
 require("config.completion") -- до lsp.lua: оттуда берутся возможности клиента
 require("config.lsp")
 require("config.hints") -- после всех маппингов: clue берёт описания из desc
+require("config.noice") -- после hints.lua: перехватывает wildmenu и cmdline
 require("config.perf") -- :PerfOn / :PerfReport — замеры, поведение не меняют

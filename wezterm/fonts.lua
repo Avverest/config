@@ -18,12 +18,12 @@ end
 
 local height = {
 	[Fonts.iosevka] = variants(1.0, 1.0, 1.0),
-	[Fonts.lilex] = variants(1.0, 1.1, 1.2),
+	[Fonts.lilex] = variants(1.0, 1.0, 1.2),
 	[Fonts.jb] = variants(1.3, 1.1, 1.0),
 }
 local size = {
 	[Fonts.iosevka] = variants(22, 23, 22),
-	[Fonts.lilex] = variants(19, 20, 20),
+	[Fonts.lilex] = variants(19, 22, 20),
 	[Fonts.jb] = variants(21, 20, 18),
 }
 

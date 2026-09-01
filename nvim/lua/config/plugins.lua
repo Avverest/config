@@ -8,8 +8,13 @@ vim.pack.add({
 	{ src = "https://github.com/lukas-reineke/indent-blankline.nvim" }, -- линии отступов
 	{ src = "https://github.com/smjonas/inc-rename.nvim" }, -- переименование с предпросмотром
 	{ src = "https://github.com/MagicDuck/grug-far.nvim" }, -- замена по всему проекту
+	{ src = "https://github.com/folke/noice.nvim" }, -- cmdline, поиск и сообщения в попапах
+	{ src = "https://github.com/MunifTanjim/nui.nvim" }, -- зависимость noice.nvim
 	-- Автодополнение — mini.completion (модуль mini.nvim, config/completion.lua)
+
+  -- Themes
 	{ src = "https://github.com/rebelot/kanagawa.nvim" },
+  { src = "https://github.com/kepano/flexoki-neovim" },
 })
 
 local ts_parsers = {
@@ -18,7 +23,6 @@ local ts_parsers = {
 	"scss",
 	"javascript",
 	"typescript",
-	"tailwindCSS",
 	"tsx",
 	"jsdoc",
 	"rust",

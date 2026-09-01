@@ -136,7 +136,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		elseif client.name == "biome" then
 			vim.keymap.set("n", "<leader>cf", function()
 				vim.lsp.buf.code_action({
-					context = { only = { "source.fixAll.biome" }, diagnostics = {} },
+					context = { only = { "source.fixAll" }, diagnostics = {} },
 					apply = true,
 				})
 			end, {
@@ -145,6 +145,23 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			})
 		end
 	end,
+})
+
+-- Tailwind: классы в cva/clsx/cn и т.п., плюс подсветка в строках
+vim.lsp.config("tailwindcss", {
+	settings = {
+		tailwindCSS = {
+			experimental = {
+				classRegex = {
+					{ "cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
+					{ "cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)" },
+					{ "cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
+					{ "clsx\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]" },
+					"class(?:Name)?\\s*[:=]\\s*[\"'`]([^\"'`]*)",
+				},
+			},
+		},
+	},
 })
 
 vim.lsp.config("emmet_ls", {
@@ -162,4 +179,5 @@ vim.lsp.enable({
 	"gopls",
 	"lua_ls",
 	"jsonls", -- vscode-json-language-server
+	"tailwindcss", -- @tailwindcss/language-server: автодополнение классов
 })

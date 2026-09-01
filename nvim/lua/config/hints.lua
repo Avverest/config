@@ -225,16 +225,46 @@ end
 -- ---------------------------------------------------------------------------
 -- 2. Подсказки по :командам
 --
--- wildmenu показывает варианты дополнения, wildoptions=pum рисует их
--- вертикальным popup-списком над командной строкой, а не строкой снизу.
--- fuzzy добавляет нечёткий подбор: :chekhe дополнится до :checkhealth.
+-- wildmenu показывает варианты дополнения, fuzzy добавляет нечёткий подбор:
+-- :chekhe дополнится до :checkhealth.
+--
+-- wildoptions=pum рисует список вертикальным popup-меню над командной
+-- строкой, а не строкой снизу. Меню рисует сам Neovim: в noice секция
+-- popupmenu выключена (config/noice.lua).
 -- ---------------------------------------------------------------------------
 local o = vim.o
 
 o.wildmenu = true
 o.wildoptions = "pum,fuzzy"
 o.wildmode = "longest:full,full" -- сначала общий префикс, потом перебор вариантов
-o.pumheight = 15 -- не разворачивать список на пол-экрана
+o.pumheight = 10 -- не разворачивать список на пол-экрана
+o.pummaxwidth = 60 -- узкий список: рядом остаётся место окну документации
+
+-- Меню дополнения не должно ложиться на строку, где идёт набор.
+--
+-- Vim рисует popup под курсором, но если снизу не помещается pumheight
+-- строк — переворачивает его вверх, и меню накрывает саму строку набора.
+-- Одним scrolloff это не лечится: у конца файла курсор всё равно доезжает
+-- до нижнего края, прокручивать дальше нечего.
+--
+-- Поэтому перед каждым открытием ужимаем pumheight до числа строк, которые
+-- реально свободны под курсором. Меню становится ниже, но всегда снизу.
+local pumheight_max = o.pumheight
+
+vim.api.nvim_create_autocmd({ "InsertEnter", "CursorMovedI" }, {
+	group = vim.api.nvim_create_augroup("PumFitBelow", { clear = true }),
+	callback = function()
+		-- Пока меню открыто, pumheight не трогаем: Vim читает его при
+		-- открытии, а смена на лету только дёргает уже отрисованный список
+		if vim.fn.pumvisible() == 1 then
+			return
+		end
+		local space_below = vim.api.nvim_win_get_height(0) - vim.fn.winline()
+		-- -1 на рамку самого popup; не опускаемся ниже 3 строк, иначе
+		-- список становится бесполезным — там уж лучше вверх
+		vim.o.pumheight = math.max(3, math.min(pumheight_max, space_below - 1))
+	end,
+})
 o.wildignorecase = true -- :e READ… найдёт README
 
 -- Мусор, который не нужен в дополнении путей
@@ -250,6 +280,7 @@ o.wildignore = table.concat({
 
 -- В popup командной строки <C-n>/<C-p> вместо <Tab>/<S-Tab> — привычнее
 -- и не конфликтует с longest:full, который на <Tab> дополняет префикс.
+--
 vim.keymap.set("c", "<C-n>", function()
 	return vim.fn.wildmenumode() == 1 and "<C-n>" or "<Down>"
 end, { expr = true, desc = "Следующий вариант дополнения" })
