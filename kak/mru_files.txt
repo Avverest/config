@@ -1,0 +1,2 @@
+/Users/averest/.config/kak/kakrc
+/Users/averest/Developing/work/Ai-tjutor/src/routes/_app/admin/forms.create.tsx

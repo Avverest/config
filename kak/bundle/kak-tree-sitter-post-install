@@ -1,3 +1,0 @@
-
-    cargo install --locked --force --path kak-tree-sitter
-    cargo install --locked --force --path ktsctl

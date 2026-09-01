@@ -1,10 +1,3 @@
-# ~/.config/kak/kakrc
-# ============================================================
-# Менеджер плагинов — kak-bundle
-# https://codeberg.org/jdugan6240/kak-bundle
-# ============================================================
-
-# Бутстрап: если kak-bundle ещё не установлен — скачиваем при первом запуске
 evaluate-commands %sh{
     plugins="$kak_config/bundle"
     mkdir -p "$plugins"
@@ -14,11 +7,6 @@ evaluate-commands %sh{
 }
 bundle-noload kak-bundle https://codeberg.org/jdugan6240/kak-bundle
 
-
-# ------------------------------------------------------------
-# LSP: автодополнение, goto-definition, диагностика, форматирование
-# https://github.com/kakoune-lsp/kakoune-lsp
-# ------------------------------------------------------------
 bundle kakoune-lsp https://github.com/kakoune-lsp/kakoune-lsp %{
     eval %sh{kak-lsp}
     lsp-enable
@@ -30,8 +18,6 @@ bundle kakoune-lsp https://github.com/kakoune-lsp/kakoune-lsp %{
     map global goto r '<esc>:lsp-references<ret>'       -docstring 'LSP references'
     map global goto y '<esc>:lsp-type-definition<ret>'  -docstring 'LSP type definition'
 }
-# Собираем бинарник kak-lsp из исходников (нужен Rust/cargo);
-# ~/.cargo/bin должен быть в $PATH
 bundle-install-hook kakoune-lsp %{
     cargo install --locked --force --path .
 }
@@ -39,19 +25,6 @@ bundle-cleaner kakoune-lsp %{
     rm -f ~/.cargo/bin/kak-lsp
 }
 
-
-# ------------------------------------------------------------
-# Tree-sitter: семантическая подсветка и выделения (типы, функции…)
-# Проект переехал с GitHub на SourceHut:
-# https://git.sr.ht/~hadronized/kak-tree-sitter
-#
-# ВАЖНО: ставит сразу два бинарника (kak-tree-sitter и ktsctl).
-# После первой установки один раз нужно вручную выполнить, например:
-#   ktsctl sync rust python go
-# чтобы подтянуть грамматики — kak-bundle это не делает автоматически.
-# Без темы, понимающей tree-sitter (см. kakoune-tree-sitter-themes),
-# подсветки не будет.
-# ------------------------------------------------------------
 bundle kak-tree-sitter https://git.sr.ht/~hadronized/kak-tree-sitter %{
     eval %sh{
         kak-tree-sitter --init "${kak_session}" --kakoune --daemonize --server --with-highlighting
@@ -62,39 +35,40 @@ bundle-install-hook kak-tree-sitter %{
     cargo install --locked --force --path ktsctl
 }
 
-
-# ------------------------------------------------------------
-# Поиск: peneira — нативный fuzzy-finder без внешних зависимостей
-# (в отличие от fzf.kak, который archived, peneira активно поддерживается)
-# https://github.com/gustavo-hms/peneira
-# ------------------------------------------------------------
-bundle luar "gustavo-hms/luar" %{
+bundle luar "https://github.com/gustavo-hms/luar" %{
     require-module luar
 }
-bundle peneira "gustavo-hms/peneira" %{
+bundle peneira "https://github.com/gustavo-hms/peneira" %{
     require-module peneira
+
+    define-command -override peneira-buffers -docstring 'peneira-buffers: переключить буфер' %{
+        peneira 'buffers: ' %{ eval "printf '%s\n' $kak_quoted_buflist" } %{
+            buffer %arg{1}
+        }
+    }
 
     map global normal <c-p> ': peneira-files<ret>'   -docstring 'найти файл'
     map global normal <c-b> ': peneira-buffers<ret>' -docstring 'переключить буфер'
+
+    map global user f ': peneira-files<ret>'   -docstring 'найти файл (<c-p>)'
+    map global user b ': peneira-buffers<ret>' -docstring 'переключить буфер (<c-b>)'
+    map global user / ': peneira-lines<ret>'   -docstring 'поиск по строкам буфера'
 }
 
-
-# ------------------------------------------------------------
-# Редактирование
-# ------------------------------------------------------------
-
-# Автозакрытие скобок и кавычек
 bundle auto-pairs "alexherbo2/auto-pairs.kak" %{
     require-module auto-pairs
     hook global WinCreate .* auto-pairs-enable
 }
 
-# Удобная навигация между буферами
-bundle kakoune-buffers "Delapouite/kakoune-buffers" %{
-    map global user b ':enter-buffers-mode<ret>' -docstring 'buffers…'
+bundle mru-files https://gitlab.com/kstr0k/mru-files.kak %{
+    set-option global mru_files_max 50
+    require-module mru-files
+
+    map global user r ': mru-files-list<ret>' -docstring 'недавние файлы…'
+    map global goto <a-f> '<esc>: mru-files '        -docstring 'mru-files'
+    map global goto <a-F> '<esc>: mru-files-related<ret>' -docstring 'mru-files-related'
 }
 
-# Сниппеты + готовая коллекция под разные языки
 bundle kakoune-snippets "occivink/kakoune-snippets" %{
     require-module snippets
 }
@@ -103,18 +77,11 @@ bundle kakoune-snippet-collection "andreyorst/kakoune-snippet-collection" %{
         "%val{config}/bundle/kakoune-snippet-collection/snippets"
 }
 
+set-option global autoinfo command|onkey
 
-# ------------------------------------------------------------
-# Тема
-# ------------------------------------------------------------
+map global user c ': comment-line<ret>'    -docstring 'переключить коммент'
+map global user n ': buffer-next<ret>'     -docstring 'следующий буфер'
+map global user N ': buffer-previous<ret>' -docstring 'предыдущий буфер'
+
 bundle-theme kakoune-themes "anhsirk0/kakoune-themes"
-# после установки выбрать конкретную схему, например:
-# colorscheme modus-operandi
-
-
-# ------------------------------------------------------------
-# Что дальше:
-#   :bundle-install   — поставить всё, что зарегистрировано выше
-#   :bundle-update     — обновить все плагины разом
-#   :bundle-clean       — удалить то, что убрали из этого файла
-# ------------------------------------------------------------
+colorscheme default
