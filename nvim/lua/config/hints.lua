@@ -81,6 +81,7 @@ MiniClue.setup({
 		{ mode = "n", keys = "<Leader>b", desc = "+Буферы" },
 		{ mode = "n", keys = "<Leader>w", desc = "+Окна" },
 		{ mode = "n", keys = "<Leader>t", desc = "+Вкладки" },
+		{ mode = "n", keys = "<Leader>o", desc = "+Задачи (overseer)" },
 		{ mode = "n", keys = "<Leader>r", desc = "+Замена по проекту" },
 		{ mode = "x", keys = "<Leader>r", desc = "+Замена: выделенное" },
 	},

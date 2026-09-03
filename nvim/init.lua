@@ -11,6 +11,9 @@ require("config.indent")
 require("config.refactor")
 require("config.completion") -- до lsp.lua: оттуда берутся возможности клиента
 require("config.lsp")
+require("config.dropbar") -- breadcrumbs в winbar; после lsp.lua ради documentSymbol
+require("config.tasks") -- overseer: запуск задач; до hints.lua ради desc
+require("config.neovide") -- только в GUI; после keymaps.lua, до hints.lua
 require("config.hints") -- после всех маппингов: clue берёт описания из desc
 require("config.noice") -- после hints.lua: перехватывает wildmenu и cmdline
 require("config.perf") -- :PerfOn / :PerfReport — замеры, поведение не меняют

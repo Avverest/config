@@ -1,0 +1,31 @@
+#!/bin/sh
+# Обёртка над nvim для Neovide.
+#
+# Зачем: GUI-приложение, запущенное из Dock, Spotlight или Raycast, не проходит
+# через ~/.zshrc и наследует только системный PATH — /usr/bin:/bin:/usr/sbin:/sbin.
+# Всех language server'ов там нет (homebrew, pnpm, cargo, go, nvm лежат в других
+# каталогах), поэтому vim.lsp.enable() поднимает клиент, exec падает с ENOENT,
+# и LSP тихо не работает — при этом из терминала тот же конфиг работает.
+#
+# Что делает: если PATH выглядит «обрезанным», перезапускает себя через
+# интерактивный login-shell, чтобы прочитались ~/.zprofile и ~/.zshrc,
+# и только потом зовёт настоящий nvim. Все аргументы и stdio пробрасываются
+# как есть — Neovide передаёт свои --embed и прочее нетронутыми.
+
+NVIM=/opt/homebrew/bin/nvim
+
+# Уже прогнались через login-shell — не зацикливаемся.
+if [ -n "$NVIM_LOGIN_PATH_DONE" ]; then
+    exec "$NVIM" "$@"
+fi
+
+# PATH уже полный (Neovide запущен из терминала) — лишний shell не нужен.
+case ":$PATH:" in
+    *:/opt/homebrew/bin:*) exec "$NVIM" "$@" ;;
+esac
+
+export NVIM_LOGIN_PATH_DONE=1
+
+# -l: login shell (~/.zprofile), -i: интерактивный (~/.zshrc — там обычно PATH).
+# "$@" внутри -c подставляется через позиционные аргументы после имени скрипта.
+exec /bin/zsh -lic 'exec "$0" "$@"' "$NVIM" "$@"

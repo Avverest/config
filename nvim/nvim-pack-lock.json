@@ -4,6 +4,10 @@
       "rev": "086a40dc7ed8242c03be9f47fbcee68699cc2395",
       "src": "https://github.com/stevearc/conform.nvim"
     },
+    "dropbar.nvim": {
+      "rev": "808ba31cde89aec8833e9789f5e04557cd31c9e1",
+      "src": "https://github.com/Bekaboo/dropbar.nvim"
+    },
     "flexoki-neovim": {
       "rev": "c3e2251e813d29d885a7cbbe9808a7af234d845d",
       "src": "https://github.com/kepano/flexoki-neovim"
@@ -33,6 +37,10 @@
       "src": "https://github.com/nvim-mini/mini.nvim",
       "version": "'stable'"
     },
+    "moonfly": {
+      "rev": "2c883835f5b7b380a0a9e80695c420f7efebdfe4",
+      "src": "https://github.com/bluz71/vim-moonfly-colors"
+    },
     "noice.nvim": {
       "rev": "7bfd942445fb63089b59f97ca487d605e715f155",
       "src": "https://github.com/folke/noice.nvim"
@@ -53,6 +61,10 @@
       "rev": "7caec274fd19c12b55902a5b795100d21531391f",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter",
       "version": "'main'"
+    },
+    "overseer.nvim": {
+      "rev": "a93d9f6d6defdac4bcd6d2c8ba988650e42e0a0e",
+      "src": "https://github.com/stevearc/overseer.nvim"
     }
   }
 }

@@ -16,11 +16,6 @@ require("mini.jump2d").setup({
 })
 
 require("mini.surround").setup()
-require("mini.cmdline").setup({
-  autopeek = {
-    enable = false
-  }
-})
 
 -- ---------------------------------------------------------------------------
 -- Иконки: mini.pick рисует значки файлов только при активном mini.icons
@@ -104,6 +99,20 @@ vim.api.nvim_create_autocmd("FileType", {
 		map("i", "'", "'", { buffer = args.buf, desc = "Апостроф без пары (lifetime)" })
 	end,
 })
+
+require("mini.notify").setup({
+	content = {
+		format = function(notif)
+			return notif.msg
+		end,
+	},
+})
+
+-- mini.git — источник данных для section_git() в mini.statusline (имя
+-- ветки): без него секция всегда пустая, писать некому в vim.b.*_summary_string.
+require("mini.git").setup()
+
+require("mini.statusline").setup()
 
 -- ---------------------------------------------------------------------------
 -- mini.keymap — разруливает конфликт <CR> между автодополнением и mini.pairs.

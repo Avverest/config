@@ -9,10 +9,11 @@
       "model": ""
     }
   },
+  "show_signature_help_after_edits": true,
   "agent_servers": {
     "claude-acp": {
       "default_config_options": {
-        "model": "opus",
+        "model": "sonnet",
         "mode": "auto",
         "effort": "high"
       },
@@ -30,26 +31,27 @@
   "collaboration_panel": {
     "button": false,
   },
+  "auto_signature_help": false,
   "show_edit_predictions": true,
   "git_commit_buffer_font_size": 20,
   "git_panel": {
     "dock": "left",
     "tree_view": false,
-    "file_icons": true,
+    "file_icons": false,
     "status_style": "label_color",
-    "starts_open": true,
+    "starts_open": false,
   },
   "outline_panel": {
     "dock": "right",
   },
   "document_folding_ranges": "on",
   "icon_theme": {
-    "mode": "dark",
+    "mode": "light",
     "light": "Zed (Default)",
     "dark": "Zed (Default)",
   },
   "title_bar": {
-    "show_user_menu": false,
+    "show_user_menu": true,
     "show_user_picture": false,
     "show_branch_status_icon": false,
     "show_branch_name": true,
@@ -57,6 +59,7 @@
     "show_onboarding_banner": false,
     "show_sign_in": false,
     "show_project_items": true,
+    "show_worktree_name": true
   },
   "colorize_brackets": true,
   "toolbar": {
@@ -72,8 +75,17 @@
     "cursor_position_button": true,
     "show_active_file": true
   },
+  "active_pane_modifiers": {
+    "inactive_opacity": 0.9,
+  },
+  "code_lens": "on",
+
+  "diff_view_style": "unified",
+  "extend_comment_on_newline": false,
+  "fullscreen_mode": "simple",
+
   "soft_wrap": "bounded",
-  "show_wrap_guides": false,
+  "show_wrap_guides": true,
   "diagnostics": {
     "include_warnings": true,
     "inline": {
@@ -102,7 +114,7 @@
   "tab_bar": {
     "show_nav_history_buttons": false,
     "show_tab_bar_buttons": false,
-    "show": true,
+    "show": false,
   },
   "indent_guides": {
     "enabled": true,
@@ -112,7 +124,7 @@
     "background_coloring": null,
   },
   "theme": {
-    "mode": "dark",
+    "mode": "light",
     "light": "One Light",
     "dark": "Kanagawa Wave",
   },
@@ -123,9 +135,9 @@
   "vim_mode": false,
   "helix_mode": true,
   "ui_font_family": "Iosevka",
-  "buffer_font_family": "Iosevka Term",
+  "buffer_font_family": "Iosevka",
   // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
-  "ui_font_size": 19,
+  "ui_font_size": 23,
   "buffer_font_size": 23,
   "markdown_preview_font_size": 23,
   "markdown_preview": {

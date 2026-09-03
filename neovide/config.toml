@@ -1,0 +1,38 @@
+# Neovide configuration
+# https://neovide.dev/config-file.html
+# Settings not available here (cursor, animations, padding, opacity)
+# live in the Neovim side of the config: see ./init.lua below.
+#
+# neovim-bin указывает на обёртку nvim-login, а не прямо на nvim:
+# запущенное из Dock/Spotlight GUI-приложение наследует только системный
+# PATH (/usr/bin:/bin:/usr/sbin:/sbin), поэтому nvim не находит ни один
+# language server (они в /opt/homebrew/bin, ~/Library/pnpm/bin, ~/.cargo/bin
+# и т.д.) и LSP молча не поднимается. Обёртка прогоняет запуск через
+# login-shell, восстанавливая полный PATH.
+
+frame = "buttonless"       # macOS: traffic lights over the buffer, no title bar
+title-hidden = true
+tabs = false                # open multiple file args as tabs
+idle = false                # stop redrawing when nothing changes (saves battery)
+vsync = true
+srgb = false               # default on macOS
+fork = false
+no-multigrid = false       # keep multigrid: smooth scroll, window anims, floating blur
+mouse-cursor-icon = "arrow"
+neovim-bin = "/Users/averest/.config/neovide/nvim-login"
+size = "1600x1000"           # взаимоисключим с maximized и grid — задан только один
+
+[font]
+# Nerd Font-патч того же шрифта: без него глифы-иконки (dropbar,
+# mini.icons) рисуются битыми квадратами — в обычной Iosevka Term
+# их просто нет. Начертания те же, что были: family = "IosevkaTerm Nerd Font".
+normal = [{ family = "IosevkaTerm Nerd Font", style = "Normal" }]
+bold = [{ family = "IosevkaTerm Nerd Font", style = "Bold" }]
+italic = [{ family = "IosevkaTerm Nerd Font", style = "Medium Oblique" }]
+bold_italic = [{ family = "IosevkaTerm Nerd Font", style = "Bold Oblique" }]
+size = 23.0
+hinting = "full"           # none | slight | normal | full
+edging = "subpixelantialias"  # antialias | subpixelantialias | alias
+
+[box-drawing]
+mode = "native"            # draw box/block glyphs ourselves: seamless, no gaps

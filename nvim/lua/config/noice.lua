@@ -15,6 +15,15 @@
 -- Зависимость: nui.nvim. Отдельный notify-плагин не нужен: view "mini"
 -- рисует уведомления сам (штатный backend noice поверх nui).
 
+-- Собственно то, что убирает строку ввода команд: без этого Neovim держит
+-- под буфером пустую строку команд, а попап noice рисуется поверх — место
+-- снизу остаётся занятым зря. laststatus не трогаем — статусная строка
+-- нужна.
+vim.o.cmdheight = 0
+vim.o.laststatus = 3
+vim.o.showmode = false
+vim.o.ruler = true
+
 require("noice").setup({
 	cmdline = {
 		enabled = true,
@@ -42,7 +51,7 @@ require("noice").setup({
 	-- через timeout. Не "notify": тот требует snacks.nvim или nvim-notify,
 	-- а без них всё равно откатывается в "mini".
 	messages = {
-		enabled = true,
+		enabled = false,
 		view = "mini", -- обычные сообщения
 		view_error = "mini",
 		view_warn = "mini",
@@ -50,7 +59,20 @@ require("noice").setup({
 		view_search = "virtualtext", -- «2/17» у строки поиска
 	},
 
-	notify = { enabled = true, view = "mini" }, -- vim.notify от плагинов
+	notify = { enabled = false, view = "mini" }, -- vim.notify от плагинов
+
+	-- Плашка "mini" вплотную прижата к краям: border.style = "none" и
+	-- position.row = -1 в пресете плагина. padding у nui-рамки добавляет
+	-- отступ внутри самого блока, row = -2 приподнимает его над нижним краем.
+	views = {
+		mini = {
+			border = {
+				style = "none",
+				padding = { 0, 1 }, -- { по вертикали, по горизонтали }
+			},
+			position = { row = -2, col = "100%" },
+		},
+	},
   popupmenu = { enabled = false },
 
 	-- Меню дополнения (и в режиме вставки, и для :команд) рисует сам Neovim.
@@ -60,7 +82,7 @@ require("noice").setup({
 	lsp = {
 		-- Индикатор загрузки LSP-серверов там же, в углу
 		progress = {
-			enabled = true,
+			enabled = false,
 			throttle = 1000 / 30,
 			view = "mini",
 		},

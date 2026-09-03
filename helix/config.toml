@@ -74,6 +74,7 @@ character = '│'
 cursor-line = "hint"
 other-lines = "disable"
 
+
 [editor.statusline]
 left = ["mode", "spinner"]
 center = ["file-name", "read-only-indicator", "file-modification-indicator"]

@@ -1,10 +1,8 @@
 # Ported from ~/.config/wezterm (wezterm.lua / fonts.lua / themes.lua / keys.lua)
 
 include other.conf
-
-#: Themes: dark-theme.auto.conf / light-theme.auto.conf are picked up
-#: automatically by kitty based on the OS color scheme. Do NOT add
-#: include lines for them - that pins one theme and breaks switching.
+# include dark-theme.auto.conf
+include light-theme.auto.conf
 
 #: Font --------------------------------------------------------------
 #: fonts.lua: iosevka @ monitor -> size 23, line_height 1.1, weight 500 (Medium)
@@ -34,30 +32,54 @@ background_blur 10
 tab_bar_edge          bottom
 tab_bar_style         powerline
 tab_powerline_style   slanted
-tab_bar_min_tabs      1
+tab_bar_min_tabs      2
 tab_title_template    "{index}: {title}"
 
-#: Tab bar colors -----------------------------------------------------
-#: kitty accepts only literal colors here - no color0/color4 palette
-#: references - so these are theme-neutral values that read correctly on
-#: both the Material and E-Ink (light) palettes. A theme that needs a
-#: different chip can override these after the include in other.conf.
-tab_bar_background      none
-tab_bar_margin_color    none
-
-active_tab_background   #134eb2
-active_tab_foreground   #ffffff
-
-inactive_tab_background #bcbcbc
-inactive_tab_foreground #4a4a4a
-
+active_tab_foreground   #f8f8f8
+active_tab_background   #2a2a2a
 active_tab_font_style   bold
+inactive_tab_foreground #7a7a7a
+inactive_tab_background #dedede
 inactive_tab_font_style normal
+tab_bar_background      #f8f8f8
 
 #: kitty always fills the window with the background color, so the
 #: partial-cell remainder that wezterm needed a workaround for is
 #: already handled here.
 
+#: Colors: Mexico Light (base16) -------------------------------------
+# background            #f8f8f8
+# foreground            #2a2a2a
+# selection_background  #dedede
+# selection_foreground  #2a2a2a
+# cursor                #2a2a2a
+# cursor_text_color     #f8f8f8
+# url_color             #7b59c0
+
+# black
+# color0  #f8f8f8
+# color8  #7a7a7a
+# red
+# color1  #ab4642
+# color9  #ab4642
+# green
+# color2  #538947
+# color10 #538947
+# yellow
+# color3  #f79a0e
+# color11 #f79a0e
+# blue
+# color4  #7cafc2
+# color12 #7cafc2
+# magenta
+# color5  #96609e
+# color13 #96609e
+# cyan
+# color6  #4b8093
+# color14 #4b8093
+# white
+# color7  #2a2a2a
+# color15 #2a2a2a
 
 #: Keys --------------------------------------------------------------
 #: keys.lua leader = CTRL+; -> kitty keyboard mode "leader"

@@ -36,4 +36,5 @@ require("kanagawa").setup({
 })
 
 -- setup must be called before loading
-vim.cmd("colorscheme flexoki-dark")
+vim.cmd("colorscheme default")
+-- vim.cmd("colorscheme moonfly")

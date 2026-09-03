@@ -1,2 +1,10 @@
+/Users/averest/.config/kitty/other.conf
+/Users/averest/Developing/work/alabuga-frontend/src/page/DialogsPage.tsx
+/private/tmp/claude-501/-Users-averest--config-kak/dec63273-711f-4b1a-ad3e-0d7a4fd8bf9b/scratchpad/proj/a.ts
 /Users/averest/.config/kak/kakrc
+/private/tmp/sn-test.go
+/private/tmp/ap-test.go
+/private/tmp/final.go
+/Users/averest/.config/kak/kar
+/Users/averest/Developing/work/alabuga-frontend/kakrc
 /Users/averest/Developing/work/Ai-tjutor/src/routes/_app/admin/forms.create.tsx

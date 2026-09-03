@@ -10,11 +10,14 @@ vim.pack.add({
 	{ src = "https://github.com/MagicDuck/grug-far.nvim" }, -- замена по всему проекту
 	{ src = "https://github.com/folke/noice.nvim" }, -- cmdline, поиск и сообщения в попапах
 	{ src = "https://github.com/MunifTanjim/nui.nvim" }, -- зависимость noice.nvim
+	{ src = "https://github.com/stevearc/overseer.nvim" }, -- запуск и список задач
+	{ src = "https://github.com/Bekaboo/dropbar.nvim" }, -- breadcrumbs в winbar (LSP/treesitter)
 	-- Автодополнение — mini.completion (модуль mini.nvim, config/completion.lua)
 
   -- Themes
 	{ src = "https://github.com/rebelot/kanagawa.nvim" },
   { src = "https://github.com/kepano/flexoki-neovim" },
+  { src = "https://github.com/bluz71/vim-moonfly-colors", name = "moonfly" },
 })
 
 local ts_parsers = {

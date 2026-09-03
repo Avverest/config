@@ -2,16 +2,26 @@
   {
     "context": "Terminal",
     "bindings": {
-      "shift-enter": [
-        "terminal::SendText",
-        "\u001b\r"
-      ]
-    }
+      "shift-enter": ["terminal::SendText", "\u001b\r"],
+    },
   },
   {
     "context": "Workspace",
     "bindings": {
-      "ctrl-;": "terminal_panel::ToggleFocus"
-    }
-  }
+      "ctrl-;": "terminal_panel::ToggleFocus",
+    },
+  },
+  {
+    "context": "Editor",
+    "bindings": {
+      "alt-shift-b": "tab_switcher::OpenInActivePane",
+      "alt-shift-y": "editor::CopyFileName",
+    },
+  },
+  {
+    "context": "Editor && (vim_mode == helix_normal || vim_mode == helix_select)",
+    "bindings": {
+      "g i": "vim::StartOfLineDownward",
+    },
+  },
 ]

@@ -88,3 +88,15 @@ vim.api.nvim_create_autocmd("FileType", {
 		vim.bo.tabstop = 2
 	end,
 })
+
+-- Убрать r/o из formatoptions: без них Enter или o/O на закомментированной
+-- строке больше не продолжает комментарий на новой строке. Отдельная
+-- автокоманда на "FileType *" нужна потому, что ftplugin'ы (в том числе
+-- встроенные) сами выставляют formatoptions при входе в filetype и
+-- перезатирают любое значение, заданное один раз при старте.
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = "*",
+	callback = function()
+		vim.bo.formatoptions = vim.bo.formatoptions:gsub("[ro]", "")
+	end,
+})

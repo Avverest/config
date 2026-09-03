@@ -1,3 +1,36 @@
+set-option global tabstop 4
+set-option global indentwidth 4
+set-option global scrolloff 3,3
+set-option -add global ui_options terminal_assistant=cat
+set-option -add global ui_options terminal_status_on_top=yes
+set-option global startup_info_version 20260521
+
+evaluate-commands %sh{ command -v rg >/dev/null 2>&1 && echo "set-option global grepcmd 'rg --column --line-number --no-heading --smart-case'" }
+
+add-highlighter global/ number-lines -relative -hlcursor
+add-highlighter global/ show-matching
+add-highlighter global/ wrap -word -indent
+add-highlighter global/ regex \h+$ 0:Error
+add-highlighter global/ show-whitespaces -indent '│' -tab '│' -tabpad ' ' -lf ' ' -spc ' ' -nbsp ' '
+
+hook global WinSetOption filetype=(?:json|markdown|yaml|toml) %{
+    set-option window tabstop 2
+    set-option window indentwidth 2
+    hook window -group expandtab InsertChar \t %{ execute-keys -draft -itersel h@ }
+    hook -once -always window WinSetOption filetype=.* %{ remove-hooks window expandtab }
+}
+
+hook global BufSetOption filetype=(?:json|markdown|yaml) %{
+    set-option buffer formatcmd "prettier --stdin-filepath '%val{buffile}'"
+}
+
+hook global BufSetOption filetype=lua %{
+    evaluate-commands %sh{
+        command -v stylua >/dev/null 2>&1 &&
+            printf "set-option buffer formatcmd %%{stylua --stdin-filepath '%s' -}\n" "$kak_buffile"
+    }
+}
+
 evaluate-commands %sh{
     plugins="$kak_config/bundle"
     mkdir -p "$plugins"
@@ -8,15 +41,46 @@ evaluate-commands %sh{
 bundle-noload kak-bundle https://codeberg.org/jdugan6240/kak-bundle
 
 bundle kakoune-lsp https://github.com/kakoune-lsp/kakoune-lsp %{
-    eval %sh{kak-lsp}
     lsp-enable
 
     set-option global modelinefmt "%opt{lsp_modeline} %opt{modelinefmt}"
+    set-option global lsp_file_watch_support true
+    lsp-inlay-hints-enable global
 
     map global user l ':enter-user-mode lsp<ret>' -docstring 'LSP mode'
-    map global goto d '<esc>:lsp-definition<ret>'      -docstring 'LSP definition'
-    map global goto r '<esc>:lsp-references<ret>'       -docstring 'LSP references'
-    map global goto y '<esc>:lsp-type-definition<ret>'  -docstring 'LSP type definition'
+
+    map global insert <tab> '<a-;>:try lsp-snippets-select-next-placeholders catch %{ execute-keys -with-hooks <lt>tab> }<ret>' -docstring 'плейсхолдер сниппета / tab'
+
+    map global object a '<a-semicolon>lsp-object<ret>'                          -docstring 'LSP любой символ'
+    map global object f '<a-semicolon>lsp-object Function Method<ret>'          -docstring 'LSP функция/метод'
+    map global object t '<a-semicolon>lsp-object Class Interface Struct<ret>'   -docstring 'LSP тип'
+    map global object d '<a-semicolon>lsp-diagnostic-object error warning<ret>' -docstring 'LSP диагностика'
+
+    map global goto d '<esc>: lsp-definition<ret>'            -docstring 'определение'
+    map global goto y '<esc>: lsp-type-definition<ret>'       -docstring 'определение типа'
+    map global goto D '<esc>: lsp-declaration<ret>'           -docstring 'объявление'
+    map global goto m '<esc>: lsp-implementation<ret>'        -docstring 'реализация'
+    map global goto r '<esc>: lsp-references<ret>'            -docstring 'ссылки'
+    map global goto s '<esc>: lsp-goto-document-symbol<ret>'  -docstring 'символ в документе'
+    map global goto S '<esc>: lsp-workspace-symbol-incr<ret>' -docstring 'символ в проекте'
+
+    source "%val{config}/lsp-tooling.kak"
+
+    set-option global modelinefmt "%opt{web_tooling} %opt{modelinefmt}"
+
+    map global user a ': web-code-actions<ret>'     -docstring 'code actions'
+    map global user F ': web-fix-all<ret>'          -docstring 'автофикс + импорты (biome/eslint)'
+    map global user o ': web-organize-imports<ret>' -docstring 'организовать импорты'
+    map global user R ': lsp-rename-prompt<ret>'    -docstring 'переименовать символ'
+    map global user d ': lsp-diagnostics<ret>'      -docstring 'диагностики буфера'
+    map global user h ': lsp-hover<ret>'            -docstring 'документация под курсором'
+
+    map global lsp F ': web-fix-all<ret>'           -docstring 'автофикс + импорты'
+    map global lsp I ': web-organize-imports<ret>'  -docstring 'организовать импорты'
+    map global lsp t ': web-tooling-info<ret>'      -docstring 'какой форматтер/линтер выбран'
+
+    map global normal <F2>  ': lsp-rename-prompt<ret>'  -docstring 'переименовать символ'
+    map global normal <c-.> ': web-code-actions<ret>'   -docstring 'code actions'
 }
 bundle-install-hook kakoune-lsp %{
     cargo install --locked --force --path .
@@ -27,6 +91,11 @@ bundle-cleaner kakoune-lsp %{
 
 bundle kak-tree-sitter https://git.sr.ht/~hadronized/kak-tree-sitter %{
     eval %sh{
+        kts_dir="${XDG_RUNTIME_DIR:-$TMPDIR}/kak-tree-sitter"
+        kts_pid=$(cat "$kts_dir/pid" 2>/dev/null)
+        if [ -e "$kts_dir/socket" ] && ! ps -p "${kts_pid:-0}" >/dev/null 2>&1; then
+            rm -f "$kts_dir/socket" "$kts_dir/pid"
+        fi
         kak-tree-sitter --init "${kak_session}" --kakoune --daemonize --server --with-highlighting
     }
 }
@@ -47,20 +116,39 @@ bundle peneira "https://github.com/gustavo-hms/peneira" %{
         }
     }
 
+    declare-option -hidden str selected_theme
+    define-command -override peneira-themes -docstring 'peneira-themes: выбрать и сохранить тему' %{
+        peneira 'themes: ' %{
+            for dir in "$kak_config/colors" "$kak_runtime/colors"; do
+                [ -d "$dir" ] && for f in "$dir"/*.kak; do
+                    [ -e "$f" ] && { f="${f##*/}"; printf '%s\n' "${f%.kak}"; }
+                done
+            done | sort -u
+        } %{
+            set-option global selected_theme %arg{1}
+            colorscheme %arg{1}
+            nop %sh{ printf 'colorscheme %s\n' "$kak_selected_theme" > "$kak_config/theme.conf" }
+            echo -markup "{Information}тема: %arg{1}"
+        }
+    }
+
     map global normal <c-p> ': peneira-files<ret>'   -docstring 'найти файл'
     map global normal <c-b> ': peneira-buffers<ret>' -docstring 'переключить буфер'
 
     map global user f ': peneira-files<ret>'   -docstring 'найти файл (<c-p>)'
     map global user b ': peneira-buffers<ret>' -docstring 'переключить буфер (<c-b>)'
     map global user / ': peneira-lines<ret>'   -docstring 'поиск по строкам буфера'
+    map global user T ': peneira-themes<ret>'  -docstring 'выбрать тему'
 }
 
-bundle auto-pairs "alexherbo2/auto-pairs.kak" %{
-    require-module auto-pairs
-    hook global WinCreate .* auto-pairs-enable
+bundle auto-pairs "https://github.com/alexherbo2/auto-pairs.kak" %{
+    enable-auto-pairs
+
+    map global user p ': enable-auto-pairs<ret>'  -docstring 'включить auto-pairs'
+    map global user P ': disable-auto-pairs<ret>' -docstring 'выключить auto-pairs'
 }
 
-bundle mru-files https://gitlab.com/kstr0k/mru-files.kak %{
+bundle mru-files "https://gitlab.com/kstr0k/mru-files.kak" %{
     set-option global mru_files_max 50
     require-module mru-files
 
@@ -69,10 +157,27 @@ bundle mru-files https://gitlab.com/kstr0k/mru-files.kak %{
     map global goto <a-F> '<esc>: mru-files-related<ret>' -docstring 'mru-files-related'
 }
 
-bundle kakoune-snippets "occivink/kakoune-snippets" %{
+bundle kakoune-snippets "https://github.com/occivink/kakoune-snippets" %{
     require-module snippets
+    source "%val{config}/snippets-loader.kak"
+
+    set-option global snippets_auto_expand false
+
+    define-command -override snippets-expand-here -docstring 'развернуть сниппет под курсором' %{
+        snippets-expand-trigger %{
+            evaluate-commands -save-regs / %{
+                set-register / %opt{snippets_triggers_regex}
+                execute-keys hGhs<ret>
+            }
+        }
+    }
+
+    map global insert <c-x> '<a-;>: snippets-expand-here<ret>' -docstring 'развернуть сниппет'
+    map global normal <c-x> ': snippets-expand-here<ret>'      -docstring 'развернуть сниппет'
+    map global user S ': snippets-menu<ret>'  -docstring 'сниппеты…'
+    map global user i ': snippets-info<ret>'  -docstring 'список сниппетов'
 }
-bundle kakoune-snippet-collection "andreyorst/kakoune-snippet-collection" %{
+bundle kakoune-snippet-collection "https://github.com/andreyorst/kakoune-snippet-collection" %{
     set-option -add global snippets_directories \
         "%val{config}/bundle/kakoune-snippet-collection/snippets"
 }
@@ -82,6 +187,46 @@ set-option global autoinfo command|onkey
 map global user c ': comment-line<ret>'    -docstring 'переключить коммент'
 map global user n ': buffer-next<ret>'     -docstring 'следующий буфер'
 map global user N ': buffer-previous<ret>' -docstring 'предыдущий буфер'
+map global user = ': web-format<ret>'      -docstring 'форматировать буфер (biome/prettier/LSP)'
 
-bundle-theme kakoune-themes "anhsirk0/kakoune-themes"
-colorscheme default
+declare-user-mode split
+
+define-command -hidden -params 1 split-client %{
+    evaluate-commands %sh{
+        [ -z "$kak_opt_windowing_module" ] &&
+            printf "fail 'нет windowing module — запусти Kakoune в wezterm или tmux'\n" &&
+            exit
+        if [ -n "$kak_buffile" ]; then
+            printf 'evaluate-commands %%{ set-option window windowing_placement %s; new edit -existing %%{%s} }\n' \
+                "$1" "$kak_buffile"
+        else
+            printf 'evaluate-commands %%{ set-option window windowing_placement %s; new }\n' "$1"
+        fi
+    }
+}
+
+map global user s ': enter-user-mode split<ret>' -docstring 'сплиты…'
+
+map global split v ': split-client horizontal<ret>' -docstring 'сплит справа'
+map global split s ': split-client vertical<ret>'   -docstring 'сплит снизу'
+map global split t ': split-client tab<ret>'        -docstring 'новая вкладка'
+map global split q ': quit<ret>'                    -docstring 'закрыть панель'
+
+declare-user-mode clipboard
+
+map global user y ': enter-user-mode clipboard<ret>' -docstring 'буфер обмена…'
+
+map global clipboard y '<a-|>pbcopy<ret>'  -docstring 'копировать выделение'
+map global clipboard Y 'x<a-|>pbcopy<ret>' -docstring 'копировать строки'
+map global clipboard d '|pbcopy<ret>'      -docstring 'вырезать выделение'
+map global clipboard p '<a-!>pbpaste<ret>' -docstring 'вставить после'
+map global clipboard P '!pbpaste<ret>'     -docstring 'вставить перед'
+map global clipboard R '|pbpaste<ret>'     -docstring 'заменить выделение'
+
+colorscheme kaleidoscope-light
+
+evaluate-commands %sh{
+    [ -r "$kak_config/theme.conf" ] || exit 0
+    read -r _cmd _name < "$kak_config/theme.conf"
+    [ -n "$_name" ] && printf 'colorscheme %s\n' "$_name"
+}
