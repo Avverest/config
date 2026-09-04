@@ -58,6 +58,71 @@ function M.enable(client, bufnr)
 end
 
 -- ---------------------------------------------------------------------------
+-- Фолбэк на слова буфера.
+--
+-- Встроенный механизм показывает только то, что прислал LSP: нет сервера
+-- (или он молчит) — нет и меню. mini.completion в этом случае звал <C-n>
+-- через fallback_action; здесь то же самое, но своим автокомандом.
+--
+-- Слова ищет сам Vim по опции 'complete' (.,w,b,u,t — текущий буфер,
+-- остальные окна, буферы в списке и выгруженные, плюс теги), поэтому
+-- собирать словарь вручную не нужно.
+--
+-- Задержка больше, чем у LSP-запроса: если сервер отвечает, меню к этому
+-- моменту уже открыто и фолбэк не вмешивается. Порядок именно такой —
+-- иначе слова из буфера мигали бы перед списком от сервера.
+-- ---------------------------------------------------------------------------
+local fallback_timer
+
+local function fallback_to_buffer_words()
+	-- Меню уже открыто (ответил LSP или предыдущий фолбэк) — не мешаем
+	if vim.fn.pumvisible() == 1 then
+		return
+	end
+
+	-- Только в режиме вставки: за время задержки из него могли выйти
+	local mode = vim.api.nvim_get_mode().mode
+	if mode ~= "i" and mode ~= "ic" then
+		return
+	end
+
+	-- Нужен непустой корень слова перед курсором, иначе <C-n> вывалит
+	-- весь словарь буфера на пробеле или скобке
+	local col = vim.api.nvim_win_get_cursor(0)[2]
+	local before = vim.api.nvim_get_current_line():sub(1, col)
+	if not before:match("[%w_]$") then
+		return
+	end
+
+	vim.api.nvim_feedkeys(vim.keycode("<C-n>"), "n", false)
+end
+
+function M.enable_buffer_fallback(bufnr)
+	if not vim.api.nvim_buf_is_valid(bufnr) then
+		return
+	end
+
+	vim.api.nvim_create_autocmd("TextChangedI", {
+		group = vim.api.nvim_create_augroup("CompletionFallback" .. bufnr, { clear = true }),
+		buffer = bufnr,
+		desc = "Слова из буфера, когда LSP ничего не предложил",
+		callback = function(args)
+			-- buftype проверяется здесь, а не при подписке: плагины часто
+			-- выставляют его уже после создания буфера, поэтому на BufEnter
+			-- он ещё пустой и служебный буфер выглядел бы обычным
+			if vim.bo[args.buf].buftype ~= "" then
+				return
+			end
+
+			if fallback_timer then
+				fallback_timer:stop()
+			end
+			fallback_timer = vim.defer_fn(fallback_to_buffer_words, 250)
+		end,
+	})
+end
+
+-- ---------------------------------------------------------------------------
 -- Подсказка сигнатуры при наборе.
 --
 -- Единственное, что делал mini.completion и чего нет во встроенном
@@ -108,5 +173,15 @@ function M.enable_signature(client, bufnr)
 		end,
 	})
 end
+
+-- Фолбэк вешается на все обычные буферы: он нужен в первую очередь там,
+-- где LSP нет вовсе, поэтому LspAttach для него не годится.
+vim.api.nvim_create_autocmd("BufEnter", {
+	group = vim.api.nvim_create_augroup("CompletionFallbackSetup", { clear = true }),
+	desc = "Включить фолбэк на слова буфера",
+	callback = function(args)
+		M.enable_buffer_fallback(args.buf)
+	end,
+})
 
 return M
