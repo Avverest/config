@@ -1,11 +1,9 @@
--- Основные настройки редактора
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 vim.g.autoformat = false
 
 local o = vim.o
 
--- Интерфейс
 o.number = true
 o.relativenumber = true
 o.signcolumn = "yes"
@@ -16,18 +14,15 @@ o.splitright = true
 o.splitbelow = true
 o.winborder = "rounded" -- рамка у плавающих окон (hover, диагностика и т.д.)
 
--- Отступы
 o.expandtab = true
 o.shiftwidth = 4
 o.tabstop = 4
 
 o.autoindent = true
 
--- Поиск
 o.ignorecase = true
 o.smartcase = true
 
--- Файлы
 o.undofile = true
 o.swapfile = false
 o.updatetime = 300
@@ -37,7 +32,6 @@ o.updatetime = 300
 -- по <C-k>, выдирая внутренности mini.completion.
 o.completeopt = "menuone,noselect,fuzzy,popup"
 
--- Диагностика
 vim.diagnostic.config({
 	severity_sort = true,
 	virtual_text = { current_line = false },

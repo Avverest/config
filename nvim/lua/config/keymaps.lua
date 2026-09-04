@@ -4,14 +4,11 @@
 --   K — hover, <C-s> (insert) — signature help
 local map = vim.keymap.set
 
--- <leader>E — файловое дерево mini.files (настроено в config/refactor.lua)
 map("n", "<CR>", ":")
 
--- Навигация LSP
 map("n", "gd", vim.lsp.buf.definition, { desc = "Перейти к определению" })
 map("n", "gD", vim.lsp.buf.declaration, { desc = "Перейти к объявлению" })
 
--- Диагностика
 map("n", "<leader>e", vim.diagnostic.open_float, { desc = "Диагностика под курсором" })
 map("n", "<leader>q", vim.diagnostic.setloclist, { desc = "Диагностика в loclist" })
 
@@ -26,12 +23,8 @@ map("n", "[e", function()
 	vim.diagnostic.jump({ count = -1, severity = vim.diagnostic.severity.ERROR })
 end, { desc = "Предыдущая ошибка" })
 
--- Форматирование (conform.nvim, с fallback на LSP)
 map({ "n", "v" }, "<leader>f", function()
 	require("conform").format({ async = true, lsp_format = "fallback" })
 end, { desc = "Форматировать буфер/выделение" })
 
--- Убрать подсветку поиска
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
-
--- Окна и вкладки — в config/workspace.lua

@@ -23,12 +23,10 @@ g.neovide_theme = "light"
 g.neovide_opacity = 1.0
 g.neovide_show_border = true -- граница окна на macOS
 
--- Рендеринг текста
 g.neovide_text_gamma = 0.0
 g.neovide_text_contrast = 0.5
 g.neovide_underline_stroke_scale = 1.0
 
--- Плавающие окна: winborder = "rounded" в options.lua, тут — тень и радиус
 g.neovide_floating_shadow = true
 g.neovide_floating_z_height = 10
 g.neovide_light_angle_degrees = 45
@@ -52,7 +50,6 @@ g.neovide_cursor_animate_command_line = false
 g.neovide_cursor_smooth_blink = true
 g.neovide_cursor_vfx_mode = ""
 
--- Поведение
 g.neovide_confirm_quit = true
 g.neovide_remember_window_size = true
 g.neovide_hide_mouse_when_typing = true
@@ -79,14 +76,12 @@ map({ "n", "v", "i" }, "<D-0>", function()
 	g.neovide_scale_factor = 1.0
 end, { desc = "Neovide: сбросить масштаб" })
 
--- Системные Cmd-копирование/вставка: в GUI их ждёшь по привычке macOS
 map({ "n", "v" }, "<D-c>", '"+y', { desc = "Копировать в системный буфер" })
 map({ "n", "v" }, "<D-v>", '"+p', { desc = "Вставить из системного буфера" })
 map("i", "<D-v>", "<C-r>+", { desc = "Вставить из системного буфера" })
 map("c", "<D-v>", "<C-r>+", { desc = "Вставить из системного буфера" })
 map("t", "<D-v>", [[<C-\><C-n>"+pi]], { desc = "Вставить из системного буфера" })
 
--- Полный экран по Cmd+Ctrl+F, как в остальных приложениях macOS
 map({ "n", "v", "i" }, "<D-C-f>", function()
 	g.neovide_fullscreen = not g.neovide_fullscreen
 end, { desc = "Neovide: полный экран" })

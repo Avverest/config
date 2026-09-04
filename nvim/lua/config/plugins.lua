@@ -14,10 +14,10 @@ vim.pack.add({
 	{ src = "https://github.com/Bekaboo/dropbar.nvim" }, -- breadcrumbs в winbar (LSP/treesitter)
 	-- Автодополнение — встроенное, vim.lsp.completion (config/completion.lua)
 
-  -- Themes
+	-- Themes
 	{ src = "https://github.com/rebelot/kanagawa.nvim" },
-  { src = "https://github.com/kepano/flexoki-neovim" },
-  { src = "https://github.com/bluz71/vim-moonfly-colors", name = "moonfly" },
+	{ src = "https://github.com/kepano/flexoki-neovim" },
+	{ src = "https://github.com/bluz71/vim-moonfly-colors", name = "moonfly" },
 })
 
 local ts_parsers = {

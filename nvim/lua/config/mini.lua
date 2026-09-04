@@ -1,10 +1,5 @@
--- mini.nvim — три запрошенные подсистемы:
---   mini.pick   — fuzzy-поиск файлов и текста (замена fzf/telescope)
---   mini.pairs  — автоматические парные скобки и кавычки
---   code action — отдельного модуля в mini.nvim нет. MiniPick.setup()
---                 подменяет vim.ui.select, поэтому нативный
---                 vim.lsp.buf.code_action() (клавиша gra) начинает
---                 показывать список действий в окне mini.pick.
+-- MiniPick.setup() подменяет vim.ui.select, поэтому нативный
+-- vim.lsp.buf.code_action() (gra) показывает список в окне mini.pick.
 
 local map = vim.keymap.set
 
@@ -17,17 +12,12 @@ require("mini.jump2d").setup({
 
 require("mini.surround").setup()
 
--- ---------------------------------------------------------------------------
--- Иконки: mini.pick рисует значки файлов только при активном mini.icons
--- ---------------------------------------------------------------------------
+-- mini.pick рисует значки файлов только при активном mini.icons
 local MiniIcons = require("mini.icons")
 MiniIcons.setup()
 MiniIcons.tweak_lsp_kind() -- значки видов символов в меню автодополнения LSP
 
--- ---------------------------------------------------------------------------
--- Fuzzy-поиск: mini.pick + mini.extra (дополнительные источники)
--- Файлы и grep идут через ripgrep, он есть в PATH.
--- ---------------------------------------------------------------------------
+-- Файлы и grep идут через ripgrep, он есть в PATH
 local MiniPick = require("mini.pick")
 
 MiniPick.setup({
@@ -51,8 +41,6 @@ MiniPick.setup({
 local MiniExtra = require("mini.extra")
 MiniExtra.setup()
 
--- Внутри окна выбора: <CR> — открыть, <C-s>/<C-v>/<C-t> — split/vsplit/вкладка,
--- <C-n>/<C-p> — вниз/вверх, <Tab> — предпросмотр, <C-x> — пометить, <Esc> — выход.
 local pick, extra = MiniPick.builtin, MiniExtra.pickers
 
 map("n", "<leader><leader>", pick.files, { desc = "Найти файл" })
@@ -85,9 +73,7 @@ map("n", "grr", function()
 	extra.lsp({ scope = "references" })
 end, { desc = "LSP: референсы (picker)" })
 
--- ---------------------------------------------------------------------------
--- Автопарные скобки: mini.pairs
--- ---------------------------------------------------------------------------
+-- Автопарные скобки
 require("mini.pairs").setup({
 	modes = { insert = true, command = true, terminal = false },
 })
@@ -115,7 +101,7 @@ require("mini.git").setup()
 require("mini.statusline").setup()
 
 -- ---------------------------------------------------------------------------
--- mini.keymap — разруливает конфликт <CR> между автодополнением и mini.pairs.
+-- mini.keymap — конфликт <CR> между автодополнением и mini.pairs.
 -- Без этого mini.pairs забирает <CR> себе и ломает подтверждение выбора
 -- в меню нативного LSP-автодополнения (см. :h MiniKeymap.map_multistep).
 -- Шаги проверяются по порядку, первый подошедший выигрывает.
