@@ -78,7 +78,7 @@
   "active_pane_modifiers": {
     "inactive_opacity": 0.9,
   },
-  "code_lens": "on",
+  "code_lens": "menu",
 
   "diff_view_style": "unified",
   "extend_comment_on_newline": false,
@@ -125,8 +125,8 @@
   },
   "theme": {
     "mode": "light",
-    "light": "One Light",
-    "dark": "Kanagawa Wave",
+    "light": "Dayfox - blurred",
+    "dark": "Catppuccin Espresso (Blur) [Heavy]",
   },
   "telemetry": {
     "diagnostics": false,
@@ -135,7 +135,7 @@
   "vim_mode": false,
   "helix_mode": true,
   "ui_font_family": "Iosevka",
-  "buffer_font_family": "Iosevka",
+  "buffer_font_family": "IosevkaTerm Nerd Font",
   // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "ui_font_size": 23,
   "buffer_font_size": 23,
