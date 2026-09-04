@@ -8,12 +8,6 @@ config.hostInfo = "helix"
 updateImportsOnFileMove.enabled = "always"
 suggest.completeFunctionCalls = true
 tsserver.enableTracing = true
-# inlayHints.parameterNames.enabled = "all"
-# inlayHints.parameterTypes.enabled = true
-# inlayHints.variableTypes.enabled = true
-# inlayHints.propertyDeclarationTypes.enabled = true
-# inlayHints.functionLikeReturnTypes = true
-# inlayHints.enumMemberValues.enabled = true
 format.enable = false
 format.semicolons = "remove"
 preferences.importModuleSpecifier = "non-relative"
@@ -47,11 +41,6 @@ args = ["--stdio"]
 command = "vscode-css-language-server"
 args = ["--stdio"]
 
-# Tailwind-директивы (@apply/@theme/@custom-variant/@variant/@utility и
-# др.) не входят в спецификацию CSS, поэтому vscode-css-language-server
-# помечает их как unknownAtRules. Глушим только эту проверку —
-# остальная валидация CSS остаётся включённой.
-# Аналог "css.lint.unknownAtRules": "ignore" в VS Code.
 [language-server.vscode-css-language-server.config.css]
 validate = true
 lint = { unknownAtRules = "ignore" }
@@ -64,29 +53,16 @@ lint = { unknownAtRules = "ignore" }
 validate = true
 lint = { unknownAtRules = "ignore" }
 
-# Emmet: аббревиатура + подтверждение автодополнения разворачивается
-# в разметку. `div` → <div></div>, `ul>li*3` → список, `.card` → div
-# с классом. Работает через обычный completion-popup, поэтому
-# отдельного кейбинда не нужно.
-# npm: @olrtg/emmet-language-server
 [language-server.emmet-ls]
 command = "emmet-language-server"
 args = ["--stdio"]
 
-# scls — снипеты и completion по словам из буфера. Emmet НЕ умеет,
-# это разные вещи. Бинарник называется полным именем, короткого
-# `scls` в $PATH нет — из-за этого ссылка на "scls" в vue-блоке
-# раньше висела мёртвой.
 [language-server.scls]
 command = "simple-completion-language-server"
 
 [language-server.tailwindcss-ls]
 command = "tailwindcss-language-server"
 args = ["--stdio"]
-# v4 использует CSS-first конфиг (@import "tailwindcss"), файла
-# tailwind.config.js больше нет — корень проекта ищется по package.json
-# и по самому CSS. Не добавлять tailwind.config.* в roots как
-# единственный признак, иначе в v4-проектах LSP не стартует.
 required-root-patterns = ["package.json", "*.css"]
 
 [language-server.eslint.config]
@@ -156,9 +132,6 @@ language-servers = ["vscode-json-language-server"]
 [[language]]
 name = "vue"
 auto-format = false
-# npx, а не голый prettier: глобально он не установлен, обычно это
-# локальная devDependency проекта. С голой командой `:format` молча
-# ничего не делает.
 formatter = { command = "npx", args = ["prettier", "--parser", "vue"] }
 language-servers = ["typescript-language-server", "emmet-ls", "scls"] # Emmet + snippet completion for the last 2
 
@@ -196,29 +169,10 @@ roots = [".zk"]
 language-servers = ["zk"]
 # KZ
 
-# ─────────────────────────────────────────────────────────────────────
-# Рабочие проекты (eslint + prettier)
-#
-# Переопределяются НЕ здесь, а локально: <project>/.helix/languages.toml
-# Helix мержит его поверх глобального, блоки с тем же `name` побеждают.
-# prettier/eslint обычно локальные devDependencies, поэтому npx —
-# иначе `:format` молча ничего не делает.
-#
-# [[language]]
-# name = "typescript"
-# language-servers = [
-#   { name = "typescript-language-server", except-features = ["format"] },
-#   "eslint",
-# ]
-# formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
-# auto-format = false
-#
-# [[language]]
-# name = "tsx"
-# language-servers = [
-#   { name = "typescript-language-server", except-features = ["format"] },
-#   "eslint",
-# ]
-# formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
-# auto-format = false
-# ─────────────────────────────────────────────────────────────────────
+[language-server.godot]
+command = "nc"
+args = [ "127.0.0.1", "6005"]
+
+[[language]]
+name = "gdscript"
+language-servers = [ "godot" ]
