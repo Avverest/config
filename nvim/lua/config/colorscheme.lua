@@ -36,5 +36,5 @@ require("kanagawa").setup({
 })
 
 -- setup must be called before loading
-vim.cmd("colorscheme default")
--- vim.cmd("colorscheme moonfly")
+-- vim.cmd("colorscheme default")
+vim.cmd("colorscheme moonfly")
