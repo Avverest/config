@@ -42,7 +42,32 @@ vim.lsp.config("rust_analyzer", {
 	},
 })
 
+-- ---------------------------------------------------------------------------
+-- vtsls: обход бага «Reduce of empty array with no initial value».
+--
+-- Сервер складывает число пунктов от своих провайдеров через reduce() без
+-- начального значения. Там, где ни один из них ничего не дал — внутри
+-- строки className в JSX — массив пуст, reduce бросает исключение, и
+-- запрос падает с -32603.
+--
+-- На автодополнение это не влияет: классы от tailwindcss подставляются
+-- как обычно (у каждого сервера свой запрос, падение одного не отменяет
+-- ответ другого). Мешает только плашка с ошибкой на каждый символ.
+--
+-- Исправление в vtsls — PR yioneko/vtsls#318, одна строка: reduce(..., 0).
+-- На сентябрь 2026 не влит, issue #329 открыт. Обработчик ниже гасит
+-- только это сообщение и только у vtsls; остальные его ошибки видны.
+-- Проверить при обновлении vtsls (сейчас 0.3.0) — и удалить, когда влит.
+-- ---------------------------------------------------------------------------
+local function vtsls_completion_handler(err, result, ctx)
+	if err and err.message and err.message:find("Reduce of empty array", 1, true) then
+		return nil, nil -- пустой ответ вместо ошибки: меню просто не откроется
+	end
+	return vim.lsp.handlers["textDocument/completion"](err, result, ctx)
+end
+
 vim.lsp.config("vtsls", {
+	handlers = { ["textDocument/completion"] = vtsls_completion_handler },
 	init_options = {
 		hostInfo = "neovim",
 		disableAutomaticTypingAcquisition = true,
