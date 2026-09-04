@@ -77,6 +77,7 @@ local function lsp_keymaps(client, buf)
 		vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
 	end
 
+  map("n", "<leader>a", vim.lsp.buf.code_action, "LSP: code action")
 	map("n", "<leader>ck", vim.lsp.buf.signature_help, "LSP: сигнатура функции")
 
 	map("n", "<leader>ch", vim.lsp.buf.hover, "LSP: документация под курсором")
@@ -164,6 +165,20 @@ vim.lsp.config("tailwindcss", {
 	},
 })
 
+-- GDScript: сервер живёт внутри самого Godot, а не ставится отдельно.
+-- Редактор слушает TCP-порт (Editor Settings -> Network -> Language Server),
+-- клиент из lspconfig просто подключается к 127.0.0.1:6005 — поэтому
+-- подсказки и переход к определению работают только при запущенном Godot.
+-- Другой порт задаётся переменной окружения GDScript_Port.
+--
+-- Чтобы Godot открывал файлы в этом Neovim, в Editor Settings -> Text Editor
+-- -> External нужно включить Use External Editor и прописать путь к nvim с
+-- аргументами: --server /tmp/godot.pipe --remote-send "<C-\><C-N>:n {file}<CR>{line}G{col}|"
+-- а сам Neovim запускать как: nvim --listen /tmp/godot.pipe
+vim.lsp.config("gdscript", {
+	root_markers = { "project.godot" }, -- без .git: LSP без Godot всё равно бесполезен
+})
+
 vim.lsp.config("emmet_ls", {
 	filetypes = { "html", "css", "scss", "sass", "less", "eruby", "htmldjango" },
 })
@@ -180,4 +195,6 @@ vim.lsp.enable({
 	"lua_ls",
 	"jsonls", -- vscode-json-language-server
 	"tailwindcss", -- @tailwindcss/language-server: автодополнение классов
+	"gdscript", -- встроен в Godot, подключение по TCP
+	"gdshader_lsp", -- шейдеры Godot (.gdshader), ставится отдельно
 })

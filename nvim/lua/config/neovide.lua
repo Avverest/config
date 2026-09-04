@@ -8,6 +8,9 @@ end
 
 local g = vim.g
 
+vim.g.neovide_opacity = 0.98
+vim.g.neovide_normal_opacity = 0.98
+
 -- Отступы от края окна: рамка buttonless прячет заголовок, кнопки лежат
 -- поверх буфера — сверху нужно место, чтобы они не наезжали на текст.
 g.neovide_padding_top = 0
@@ -16,7 +19,7 @@ g.neovide_padding_left = 0
 g.neovide_padding_right = 0
 
 -- Тема берётся из системной (light/dark), colorscheme.lua ставит flexoki-light
-g.neovide_theme = "auto"
+g.neovide_theme = "light"
 g.neovide_opacity = 1.0
 g.neovide_show_border = true -- граница окна на macOS
 

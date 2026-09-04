@@ -39,8 +39,21 @@ local ts_parsers = {
 	"vim",
 	"vimdoc",
 	"query",
+	"gdscript",
+	"gdshader",
+	"godot_resource", -- project.godot, *.tres, *.tscn
 }
 require("nvim-treesitter").install(ts_parsers)
+
+-- Godot: project.godot встроенный ftplugin не распознаёт вовсе, а .gdshaderinc
+-- знает не каждая версия. Оба — обычные ресурсные файлы Godot, парсер для них
+-- называется godot_resource, тогда как filetype у .tscn/.tres — gdresource,
+-- поэтому имя парсера приходится связать с filetype вручную.
+vim.filetype.add({
+	filename = { ["project.godot"] = "gdresource" },
+	extension = { gdshaderinc = "gdshader" },
+})
+vim.treesitter.language.register("godot_resource", "gdresource")
 
 vim.opt.runtimepath:append(vim.fs.joinpath(vim.fn.stdpath("data"), "site/pack/core/opt/nvim-treesitter/runtime"))
 
@@ -74,6 +87,7 @@ require("conform").setup({
 		rust = { "rustfmt" },
 		lua = { "stylua" },
 		go = { "goimports", "gofmt" },
+		gdscript = { "gdformat" }, -- gdtoolkit; отступы табами, как требует Godot
 	},
 	format_on_save = function(bufnr)
 		if vim.g.autoformat == false or vim.b[bufnr].autoformat == false then
@@ -88,6 +102,7 @@ local lint = require("lint")
 lint.linters_by_ft = {
 	css = { "stylelint" },
 	scss = { "stylelint" },
+	gdscript = { "gdlint" },
 }
 
 local linter_configs = {
@@ -122,7 +137,10 @@ local function try_lint(bufnr)
 	end
 end
 
-vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost" }, {
+-- FileType, а не BufReadPost: последний срабатывает до определения filetype,
+-- поэтому в колбэке vim.bo.filetype ещё пустой и ни один линтер не выбирается —
+-- линтинг при открытии файла молча не работал, оставался только BufWritePost.
+vim.api.nvim_create_autocmd({ "FileType", "BufWritePost" }, {
 	callback = function(args)
 		try_lint(args.buf)
 	end,

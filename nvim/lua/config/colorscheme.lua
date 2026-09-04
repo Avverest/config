@@ -1,6 +1,8 @@
+vim.g.moonflyTransparent = true
+
 require("luna").setup({
-	transparent = false,
-	accent = 1.0, -- 0-1, blends syntax accents toward grey_light; 1 = full color
+	transparent = true,
+	accent = 0.95, -- 0-1, blends syntax accents toward grey_light; 1 = full color
 	plugins = {
 		all = true, -- enable every plugin integration unconditionally
 		auto = true, -- when plugins.all is false, autodetect via lazy.nvim
@@ -18,7 +20,7 @@ require("kanagawa").setup({
 	keywordStyle = { italic = true },
 	statementStyle = { bold = true },
 	typeStyle = {},
-	transparent = false, -- do not set background color
+	transparent = true, -- do not set background color
 	dimInactive = false, -- dim inactive window `:h hl-NormalNC`
 	terminalColors = true, -- define vim.g.terminal_color_{0,17}
 	colors = { -- add/modify theme and palette colors
@@ -34,7 +36,3 @@ require("kanagawa").setup({
 		light = "lotus",
 	},
 })
-
--- setup must be called before loading
--- vim.cmd("colorscheme default")
-vim.cmd("colorscheme moonfly")

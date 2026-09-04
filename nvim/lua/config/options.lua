@@ -89,6 +89,18 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+-- GDScript: официальный стиль Godot — отступы табами, а сам редактор при
+-- сохранении сцены переписывает пробелы обратно в табы. Глобальный expandtab
+-- из этого файла тут только мешает, поэтому выключаем его для gdscript.
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "gdscript", "gdshader" },
+	callback = function()
+		vim.bo.expandtab = false
+		vim.bo.shiftwidth = 4
+		vim.bo.tabstop = 4
+	end,
+})
+
 -- Убрать r/o из formatoptions: без них Enter или o/O на закомментированной
 -- строке больше не продолжает комментарий на новой строке. Отдельная
 -- автокоманда на "FileType *" нужна потому, что ftplugin'ы (в том числе
