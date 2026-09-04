@@ -102,7 +102,7 @@ local function lsp_keymaps(client, buf)
 		vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
 	end
 
-	map("n", "<leader>a", vim.lsp.buf.code_action, "LSP: code action")
+	map({ "n", "v" }, "<leader>a", vim.lsp.buf.code_action, "LSP: code action")
 	map("n", "<leader>ck", vim.lsp.buf.signature_help, "LSP: сигнатура функции")
 
 	map("n", "<leader>ch", vim.lsp.buf.hover, "LSP: документация под курсором")

@@ -4,6 +4,8 @@ vim.g.autoformat = false
 
 local o = vim.o
 
+vim.opt.clipboard = "unnamedplus"
+
 o.number = true
 o.relativenumber = true
 o.signcolumn = "yes"
