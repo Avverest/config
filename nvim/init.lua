@@ -16,6 +16,5 @@ require("config.tasks") -- overseer: запуск задач; до hints.lua р�
 require("config.neovide") -- только в GUI; после keymaps.lua, до hints.lua
 require("config.hints") -- после всех маппингов: clue берёт описания из desc
 require("config.noice") -- после hints.lua: перехватывает wildmenu и cmdline
-require("config.perf") -- :PerfOn / :PerfReport — замеры, поведение не меняют
 
 vim.cmd("colorscheme moonfly")

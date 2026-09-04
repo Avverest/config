@@ -77,7 +77,7 @@ local function lsp_keymaps(client, buf)
 		vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = desc })
 	end
 
-  map("n", "<leader>a", vim.lsp.buf.code_action, "LSP: code action")
+	map("n", "<leader>a", vim.lsp.buf.code_action, "LSP: code action")
 	map("n", "<leader>ck", vim.lsp.buf.signature_help, "LSP: сигнатура функции")
 
 	map("n", "<leader>ch", vim.lsp.buf.hover, "LSP: документация под курсором")
@@ -128,6 +128,10 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		end
 
 		lsp_keymaps(client, args.buf)
+
+		local completion = require("config.completion")
+		completion.enable(client, args.buf)
+		completion.enable_signature(client, args.buf)
 
 		if client.name == "eslint" then
 			vim.keymap.set("n", "<leader>cf", "<cmd>LspEslintFixAll<CR>", {

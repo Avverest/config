@@ -9,7 +9,7 @@
 local map = vim.keymap.set
 
 -- Прыжок по экрану на gw (mini.jump2d).
--- mini.completion настраивается отдельно в config/completion.lua.
+-- Автодополнение — встроенное, настраивается в config/completion.lua.
 require("mini.jump2d").setup({
 	allowed_lines = { blank = false },
 	mappings = { start_jumping = "gw" },
@@ -123,7 +123,7 @@ require("mini.statusline").setup()
 local MiniKeymap = require("mini.keymap")
 MiniKeymap.setup()
 
--- Меню mini.completion — это встроенный popup Vim, поэтому шаги pmenu_*.
+-- Меню автодополнения — встроенный popup Vim, поэтому шаги pmenu_*.
 --   <CR>  — подтвердить выбранный пункт, иначе отдать <CR> в mini.pairs;
 --   <Tab> — следующий пункт меню (вставляется сразу), иначе прыжок по
 --           сниппету, иначе обычная табуляция.

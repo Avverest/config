@@ -12,7 +12,7 @@ vim.pack.add({
 	{ src = "https://github.com/MunifTanjim/nui.nvim" }, -- зависимость noice.nvim
 	{ src = "https://github.com/stevearc/overseer.nvim" }, -- запуск и список задач
 	{ src = "https://github.com/Bekaboo/dropbar.nvim" }, -- breadcrumbs в winbar (LSP/treesitter)
-	-- Автодополнение — mini.completion (модуль mini.nvim, config/completion.lua)
+	-- Автодополнение — встроенное, vim.lsp.completion (config/completion.lua)
 
   -- Themes
 	{ src = "https://github.com/rebelot/kanagawa.nvim" },

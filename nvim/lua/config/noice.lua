@@ -10,7 +10,7 @@
 --     его через relative = "cursor" без проверки места снизу, из-за чего
 --     окно ложилось на строку набора;
 --   * lsp.hover / lsp.signature — рисовали второе окно поверх того, что
---     уже показывает mini.completion.
+--     уже показывает нативный vim.lsp.buf.
 --
 -- Зависимость: nui.nvim. Отдельный notify-плагин не нужен: view "mini"
 -- рисует уведомления сам (штатный backend noice поверх nui).
@@ -88,7 +88,7 @@ require("noice").setup({
 		},
 		-- Сообщения от серверов (window/showMessage) — уведомлением
 		message = { enabled = false, view = "mini" },
-		-- Окна hover и подсказок сигнатуры рисует mini.completion:
+		-- Окна hover и подсказок сигнатуры рисует нативный vim.lsp.buf:
 		-- включённые здесь, они давали второе окно поверх первого.
 		hover = { enabled = false },
 		signature = { enabled = false },

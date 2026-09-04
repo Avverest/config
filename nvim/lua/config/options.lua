@@ -32,7 +32,10 @@ o.undofile = true
 o.swapfile = false
 o.updatetime = 300
 
-o.completeopt = "menuone,noselect,fuzzy"
+-- popup: документация к выделенному пункту в отдельном окне рядом с меню
+-- (completionItem/resolve). Раньше это окно приходилось открывать вручную
+-- по <C-k>, выдирая внутренности mini.completion.
+o.completeopt = "menuone,noselect,fuzzy,popup"
 
 -- Диагностика
 vim.diagnostic.config({
