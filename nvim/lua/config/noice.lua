@@ -11,7 +11,7 @@
 -- cmdheight = 0 убирает пустую строку команд под буфером: иначе попап
 -- noice рисуется поверх неё и место снизу занято зря.
 vim.o.cmdheight = 0
-vim.o.laststatus = 3
+vim.o.laststatus = 0
 vim.o.showmode = false
 vim.o.ruler = true
 

@@ -111,3 +111,13 @@ vim.api.nvim_create_autocmd("FileType", {
 		vim.bo.formatoptions = vim.bo.formatoptions:gsub("[ro]", "")
 	end,
 })
+
+vim.api.nvim_create_user_command('Z', function(opts)
+  local path = vim.fn.system('zoxide query -- ' .. vim.fn.shellescape(opts.args)):gsub('%s+$', '')
+  if vim.v.shell_error == 0 and path ~= '' then
+    vim.cmd('cd ' .. vim.fn.fnameescape(path))
+    vim.cmd('edit .')  -- откроет netrw/файловый браузер в этой директории
+  else
+    vim.notify('zoxide: нет совпадений для ' .. opts.args, vim.log.levels.WARN)
+  end
+end, { nargs = 1 })

@@ -18,3 +18,7 @@ require("config.hints") -- после всех маппингов: clue берё
 require("config.noice") -- после hints.lua: перехватывает wildmenu и cmdline
 
 vim.cmd("colorscheme moonfly")
+require("hardtime").setup({
+  max_time = 1000,
+  max_count = 3,
+})

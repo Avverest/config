@@ -18,6 +18,9 @@ vim.pack.add({
 	{ src = "https://github.com/rebelot/kanagawa.nvim" },
 	{ src = "https://github.com/kepano/flexoki-neovim" },
 	{ src = "https://github.com/bluz71/vim-moonfly-colors", name = "moonfly" },
+
+	-- Nvim helper
+	{ src = "https://github.com/m4xshen/hardtime.nvim" },
 })
 
 local ts_parsers = {
