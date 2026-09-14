@@ -29,6 +29,6 @@ end, { desc = "Форматировать буфер/выделение" })
 
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
-vim.keymap.set('n', '<leader>cp', function()
+map('n', '<leader>cp', function()
   vim.fn.setreg('+', vim.fn.expand('%:.'))
 end, { desc = "Скопировать путь файла" })

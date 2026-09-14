@@ -1,3 +1,11 @@
+/Users/averest/Developing/work/Alalingva/Ai-tjutor/src/app/components/pageComponents/admin/courses/coursesEditor/PreviewErrorBoundary.tsx
+/Users/averest/.config/kak/lsp-tooling.kak
+/Users/averest/Developing/work/Alalingva/Ai-tjutor/src/app/components/lessons/lessonComplete/ResultActionBar.tsx
+/Users/averest/Developing/work/Alalingva/Ai-tjutor/.env.example
+/Users/averest/Developing/projects/rust~tg-tray-messenger/.zed/settings.json
+/Users/averest/Developing/projects/rust~tg-tray-messenger/src-tauri/tauri.conf.json
+/Users/averest/.claude/plans/piped-squishing-elephant.md
+/Users/averest/Developing/projects/godot~desktop-window-pet/test/testfile.gd
 /Users/averest/.config/kitty/other.conf
 /Users/averest/Developing/work/alabuga-frontend/src/page/DialogsPage.tsx
 /private/tmp/claude-501/-Users-averest--config-kak/dec63273-711f-4b1a-ad3e-0d7a4fd8bf9b/scratchpad/proj/a.ts

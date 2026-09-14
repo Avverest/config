@@ -168,6 +168,20 @@ codeAction.showDocumentation = { enable = true }
 TOML
                 ;;
         esac
+
+        case "$kak_opt_filetype" in
+            javascript|typescript|jsx|tsx)
+                cat <<'TOML'
+set-option -add buffer lsp_servers %{
+
+[vtsls]
+command = "vtsls"
+args = ["--stdio"]
+root_globs = ["package.json", "tsconfig.json", "jsconfig.json"]
+}
+TOML
+                ;;
+        esac
     }
 }
 

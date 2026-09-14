@@ -51,7 +51,7 @@
     "dark": "Zed (Default)",
   },
   "title_bar": {
-    "show_user_menu": true,
+    "show_user_menu": false,
     "show_user_picture": false,
     "show_branch_status_icon": false,
     "show_branch_name": true,
@@ -63,14 +63,14 @@
   },
   "colorize_brackets": true,
   "toolbar": {
-    "breadcrumbs": true,
+    "breadcrumbs": false,
     "quick_actions": false,
     "selections_menu": false,
     "code_actions": false,
     "agent_review": false,
   },
   "status_bar": {
-    "experimental.show": false,
+    "experimental.show": true,
     "active_language_button": true,
     "cursor_position_button": true,
     "show_active_file": true
@@ -114,7 +114,8 @@
   "tab_bar": {
     "show_nav_history_buttons": false,
     "show_tab_bar_buttons": false,
-    "show": false,
+    "show_pinned_tabs_in_separate_row": false,
+    "show": true,
   },
   "indent_guides": {
     "enabled": true,
@@ -138,7 +139,7 @@
   "buffer_font_family": "IosevkaTerm Nerd Font",
   // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "ui_font_size": 23,
-  "buffer_font_size": 23,
+  "buffer_font_size": 25,
   "markdown_preview_font_size": 23,
   "markdown_preview": {
     "max_width": 1100
