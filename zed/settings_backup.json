@@ -1,87 +1,103 @@
 {
-  "collaboration_panel": {
-    "dock": "right"
-  },
-  "languages": {
-    "TSX": {
-      "show_edit_predictions": true
+  "edit_predictions": {
+    "provider": "zed",
+    "codestral": {
+      "api_url": "https://codestral.mistral.ai"
+    },
+    "open_ai_compatible_api": {
+      "api_url": "",
+      "model": ""
     }
   },
+  "show_signature_help_after_edits": true,
+  "agent_servers": {
+    "claude-acp": {
+      "default_config_options": {
+        "model": "opus",
+        "mode": "auto",
+        "effort": "high"
+      },
+      "type": "registry"
+    }
+  },
+  "agent": {
+    "button": true,
+    "dock": "right",
+    "sidebar_side": "right",
+    "favorite_models": [],
+    "model_parameters": [],
+  },
+  "disable_ai": true,
+  "collaboration_panel": {
+    "button": false,
+  },
+  "auto_signature_help": false,
   "show_edit_predictions": true,
+  "git_commit_buffer_font_size": 20,
   "git_panel": {
     "dock": "left",
     "tree_view": false,
+    "file_icons": false,
+    "status_style": "label_color",
+    "starts_open": false,
   },
   "outline_panel": {
     "dock": "right",
   },
-  "agent": {
-    "sidebar_side": "right",
-    "dock": "right",
-    "default_profile": "write",
-    "default_model": {
-      "provider": "zed.dev",
-      "model": "claude-sonnet-4-6",
-      "enable_thinking": true,
-      "effort": "max"
-    },
-    "inline_assistant_model": {
-      "provider": "copilot_chat",
-      "model": "claude-haiku-4.5",
-      "enable_thinking": true,
-    },
-    "commit_message_model": {
-      "provider": "anthropic",
-      "model": "claude-haiku-4-5",
-    },
-  },
-  "agent_servers": {
-    "cursor": {
-      "type": "registry",
-    },
-  },
   "document_folding_ranges": "on",
-  "disable_ai": false,
-  "code_actions_on_format": {
-    "source.organizeImports.biome": true,
-    "source.fixAll.biome": true,
-  },
-  "edit_predictions": {
-    "mode": "eager",
-  },
   "icon_theme": {
     "mode": "light",
     "light": "Zed (Default)",
     "dark": "Zed (Default)",
   },
   "title_bar": {
-    "show_branch_icon": true,
+    "show_user_menu": false,
+    "show_user_picture": false,
+    "show_branch_status_icon": false,
     "show_branch_name": true,
     "show_menus": false,
     "show_onboarding_banner": false,
     "show_sign_in": false,
     "show_project_items": true,
+    "show_worktree_name": true
   },
   "colorize_brackets": true,
   "toolbar": {
     "breadcrumbs": false,
     "quick_actions": false,
     "selections_menu": false,
-    "code_actions": true,
-    "agent_review": true,
+    "code_actions": false,
+    "agent_review": false,
   },
   "status_bar": {
     "experimental.show": true,
+    "active_language_button": true,
+    "cursor_position_button": true,
+    "show_active_file": true
   },
+  "active_pane_modifiers": {
+    "inactive_opacity": 0.9,
+  },
+  "code_lens": "menu",
+
+  "diff_view_style": "split",
+  "extend_comment_on_newline": false,
+  "fullscreen_mode": "simple",
+
+  "soft_wrap": "bounded",
+  "show_wrap_guides": true,
   "diagnostics": {
     "include_warnings": true,
     "inline": {
       "enabled": true,
       "update_debounce_ms": 300,
-      "padding": 4,
+      "padding": 2,
       "min_column": 1,
-      "max_severity": null,
+      "max_severity": "all",
     },
+  },
+  "sticky_scroll": {
+    "enabled": false,
   },
   "gutter": {
     "breakpoints": false,
@@ -89,6 +105,7 @@
     "folds": false,
     "runnables": false,
     "min_line_number_digits": 2,
+    "bookmarks": false,
   },
   "line_indicator_format": "short",
   "relative_line_numbers": "enabled",
@@ -97,12 +114,20 @@
   "tab_bar": {
     "show_nav_history_buttons": false,
     "show_tab_bar_buttons": false,
+    "show_pinned_tabs_in_separate_row": false,
     "show": true,
+  },
+  "indent_guides": {
+    "enabled": true,
+    "line_width": 1,
+    "active_line_width": 1,
+    "coloring": "fixed",
+    "background_coloring": null,
   },
   "theme": {
     "mode": "light",
-    "light": "Spiceflow Light",
-    "dark": "Spiceflow Dark",
+    "light": "Dayfox - blurred",
+    "dark": "Catppuccin Espresso (Blur) [Heavy]",
   },
   "telemetry": {
     "diagnostics": false,
@@ -110,32 +135,39 @@
   },
   "vim_mode": false,
   "helix_mode": true,
-  "ui_font_size": 18,
   "ui_font_family": "Iosevka",
-  "buffer_font_size": 23,
-  "buffer_font_family": "Iosevka",
-  "buffer_line_height": "comfortable",
-  "buffer_font_weight": 250,
-  "ui_font_weight": 250,
-  "preferred_line_length": 100,
-  "show_whitespaces": "none",
-  "whitespace_map": {
-    // "space": "⍽"
-    "space": "·",
+  "buffer_font_family": "IosevkaTerm Nerd Font",
+  // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
+  "ui_font_size": 23,
+  "buffer_font_size": 25,
+  "markdown_preview_font_size": 23,
+  "markdown_preview": {
+    "max_width": 1100
   },
+  "buffer_line_height": "standard",
+  "buffer_font_weight": 400,
+  "ui_font_weight": 400,
+  "preferred_line_length": 140,
+  "show_whitespaces": "none",
   "scrollbar": {
     "show": "never",
   },
   "project_panel": {
     "dock": "left",
+    "sticky_scroll": false,
     "scrollbar": {
       "show": "never",
     },
   },
   "terminal": {
-    "font_weight": 250,
+    "button": true,
+    "font_weight": 400,
+    "dock": "right",
+    "line_height": "standard",
+    "font_size": 20
   },
   "tab_size": 2,
+  "unstable.ui_density": "compact",
   "preview_tabs": {
     "enabled": true,
     "enable_preview_from_file_finder": true,
@@ -146,32 +178,20 @@
   "unnecessary_code_fade": 0.5,
   "inlay_hints": {
     "enabled": false,
-    "show_other_hints": false,
+    "show_other_hints": true,
+    "show_background": true,
+    "show_type_hints": true,
+    "show_parameter_hints": true,
+    "show_value_hints": true,
   },
   "bottom_dock_layout": null,
   "format_on_save": "off",
   "lsp": {
-    "eslint": {
+    "biome": {
       "settings": {
-        "workingDirectory": {
-          "mode": "auto",
-        },
+        "require_config_file": true,
+        "config_path": "./biome.json",
       },
-    },
-    "vtsls": {
-      "settings": {
-        "typescript": {
-          "updateImportsOnFileMove": {
-            "enabled": "always",
-          },
-        },
-        "javascript": {
-          "updateImportsOnFileMove": {
-            "enabled": "always",
-          },
-        },
-      },
-      "enable_lsp_tasks": true,
     },
   },
 }

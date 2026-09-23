@@ -109,6 +109,21 @@ roots = ["biome.json", "biome.jsonc", "package.json"]
 language-servers = [{ name = "typescript-language-server", except-features = [ "format" ] }, "biome", "tailwindcss-ls", "emmet-ls"]
 # sT/sJ
 
+# Svelte
+[language-server.svelte-language-server]
+command = "svelteserver"
+args = ["--stdio"]
+config.hostInfo = "helix"
+
+[[language]]
+name = "svelte"
+roots = ["package.json", ".eslintrc", ".eslintrc.json", "eslint.config.mjs"]
+indent = { tab-width = 2, unit = "  " }
+language-servers = [ { name = "svelte-language-server", except-features = [ "format" ] }, "eslint", "tailwindcss-ls"]
+formatter = { command = "npx", args = ["prettier", "--parser", "typescript"] }
+auto-format = false
+# etlevS
+
 # Html
 [[language]]
 name = "html"

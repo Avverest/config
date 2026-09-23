@@ -16,8 +16,8 @@
 # theme = 'autumn_night'
 # theme = 'kanagawa'
 # theme = 'everforest_dark'
-# theme = 'ferra'
-theme = 'flexoki_dark'
+# theme = 'flexoki_dark'
+theme = 'adwaita-dark'
 
 
 [editor]

@@ -5,33 +5,6 @@
             "complex_modifications": {
                 "rules": [
                     {
-                        "description": "Language: left Option+E English, left Option+R Russian",
-                        "manipulators": [
-                            {
-                                "from": {
-                                    "key_code": "e",
-                                    "modifiers": {
-                                        "mandatory": ["left_option"],
-                                        "optional": ["caps_lock"]
-                                    }
-                                },
-                                "to": [{ "select_input_source": { "language": "^en$" } }],
-                                "type": "basic"
-                            },
-                            {
-                                "from": {
-                                    "key_code": "r",
-                                    "modifiers": {
-                                        "mandatory": ["left_option"],
-                                        "optional": ["caps_lock"]
-                                    }
-                                },
-                                "to": [{ "select_input_source": { "language": "^ru$" } }],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
                         "description": "Turn language",
                         "enabled": false,
                         "manipulators": [
@@ -71,7 +44,6 @@
                     },
                     {
                         "description": "Language toggler",
-                        "enabled": false,
                         "manipulators": [
                             {
                                 "from": {
