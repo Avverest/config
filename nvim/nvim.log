@@ -1,0 +1,2 @@
+WRN 2026-09-23T18:31:54.027 ?.66398    server_start:197: Failed to start server: operation not permitted: /var/folders/xf/t8pgms1d2pl1gr4mmz6ktjs00000gn/T/nvim.averest/RzY4Bb/nvim.66398.0
+WRN 2026-09-23T18:32:09.798 ?.66554    server_start:197: Failed to start server: operation not permitted: /var/folders/xf/t8pgms1d2pl1gr4mmz6ktjs00000gn/T/nvim.averest/qjUGZQ/nvim.66554.0

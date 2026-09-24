@@ -139,10 +139,10 @@
   "vim_mode": false,
   "helix_mode": true,
   "ui_font_family": "Iosevka",
-  "buffer_font_family": "IosevkaTerm Nerd Font",
+  // "buffer_font_family": "IosevkaTerm Nerd Font",
   // "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "ui_font_size": 23,
-  "buffer_font_size": 25,
+  "buffer_font_size": 23,
   "markdown_preview": {
     "font_size": 23,
     "max_width": 1100

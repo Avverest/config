@@ -42,6 +42,8 @@ local ts_parsers = {
 	"gdscript",
 	"gdshader",
 	"godot_resource", -- project.godot, *.tres, *.tscn
+  "svelte",
+  "php",
 }
 require("nvim-treesitter").install(ts_parsers)
 
@@ -87,6 +89,7 @@ require("conform").setup({
 		rust = { "rustfmt" },
 		lua = { "stylua" },
 		go = { "goimports", "gofmt" },
+		php = { "pint" },
 		gdscript = { "gdformat" }, -- gdtoolkit; отступы табами, как требует Godot
 	},
 	format_on_save = function(bufnr)

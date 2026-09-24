@@ -1,17 +1,4 @@
-# Ported from ~/.config/wezterm (wezterm.lua / fonts.lua / themes.lua / keys.lua)
-
 include other.conf
-
-#: Themes: dark-theme.auto.conf / light-theme.auto.conf are picked up
-#: automatically by kitty based on the OS color scheme. Do NOT add
-#: include lines for them - that pins one theme and breaks switching.
-
-#: Font --------------------------------------------------------------
-#: fonts.lua: iosevka @ monitor -> size 23, line_height 1.1, weight 500 (Medium)
-# font_family      family="IosevkaTerm Nerd Font Mono" style=Regular
-# bold_font        family="IosevkaTerm Nerd Font Mono" style=ExtraBold
-# italic_font      family="IosevkaTerm Nerd Font Mono" style="Medium Italic"
-# bold_italic_font family="IosevkaTerm Nerd Font Mono" style="ExtraBold Italic"
 
 font_size 24.0
 
@@ -26,8 +13,8 @@ macos_option_as_alt no
 
 hide_window_decorations titlebar-only
 window_padding_width 0
-background_opacity 1.0
-background_blur 10
+background_opacity 0.95
+background_blur 95
 
 #: Tabs --------------------------------------------------------------
 tab_bar_edge          bottom
@@ -37,18 +24,12 @@ tab_bar_min_tabs      1
 tab_title_template    "{index}: {title}"
 
 #: Tab bar colors -----------------------------------------------------
-#: kitty accepts only literal colors here - no color0/color4 palette
-#: references - so these are theme-neutral values that read correctly on
-#: both the Material and E-Ink (light) palettes. A theme that needs a
-#: different chip can override these after the include in other.conf.
-tab_bar_background      none
-tab_bar_margin_color    none
-
-active_tab_background   #134eb2
-active_tab_foreground   #ffffff
-
-inactive_tab_background #bcbcbc
-inactive_tab_foreground #4a4a4a
+# tab_bar_background      none
+# tab_bar_margin_color    none
+# active_tab_background   #134eb2
+# active_tab_foreground   #ffffff
+# inactive_tab_background #bcbcbc
+# inactive_tab_foreground #4a4a4a
 
 active_tab_font_style   bold
 inactive_tab_font_style normal
@@ -112,3 +93,9 @@ bold_font        auto
 italic_font      auto
 bold_italic_font auto
 # END_KITTY_FONTS
+
+
+# BEGIN_KITTY_THEME
+# Flexoki (Dark)
+include current-theme.conf
+# END_KITTY_THEME

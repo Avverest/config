@@ -32,6 +32,30 @@ vim.lsp.config("lua_ls", {
 	},
 })
 
+-- PHP
+vim.lsp.config("phpactor", {
+	cmd = {
+		"/Users/averest/.local/bin/phpactor",
+		"language-server",
+	},
+
+	filetypes = { "php" },
+
+	root_markers = {
+		"composer.json",
+		".phpactor.json",
+		".phpactor.yml",
+		".git",
+	},
+
+	workspace_required = true,
+
+	init_options = {
+		["language_server_phpstan.enabled"] = false,
+		["language_server_psalm.enabled"] = false,
+	},
+})
+
 -- Rust: проверка кода через clippy вместо cargo check
 vim.lsp.config("rust_analyzer", {
 	settings = {
@@ -88,6 +112,10 @@ vim.lsp.config("vtsls", {
 		},
 		javascript = { format = { enable = false } },
 	},
+})
+
+vim.lsp.config("svelte", {
+	cmd = { "/Users/averest/Library/pnpm/bin/svelteserver", "--stdio" },
 })
 
 vim.lsp.config("eslint", {
@@ -216,6 +244,7 @@ vim.lsp.enable({
 	"html", -- vscode-html-language-server
 	"cssls", -- vscode-css-language-server
 	"vtsls", -- @vtsls/language-server (JS + TS)
+	"svelte", -- svelteserver: компоненты .svelte
 	"eslint", -- vscode-eslint-language-server: диагностика + фиксы
 	"biome", -- диагностика + фиксы там, где в проекте есть biome.json
 	"emmet_ls", -- emmet для html/css
@@ -226,4 +255,5 @@ vim.lsp.enable({
 	"tailwindcss", -- @tailwindcss/language-server: автодополнение классов
 	"gdscript", -- встроен в Godot, подключение по TCP
 	"gdshader_lsp", -- шейдеры Godot (.gdshader), ставится отдельно
+	"phpactor",
 })

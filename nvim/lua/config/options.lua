@@ -1,6 +1,6 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
-vim.g.autoformat = false
+vim.g.autoformat = true
 
 local o = vim.o
 
@@ -121,3 +121,4 @@ vim.api.nvim_create_user_command('Z', function(opts)
     vim.notify('zoxide: нет совпадений для ' .. opts.args, vim.log.levels.WARN)
   end
 end, { nargs = 1 })
+
