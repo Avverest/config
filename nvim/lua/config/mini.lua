@@ -97,6 +97,7 @@ require("mini.notify").setup({
 -- mini.git — источник данных для section_git() в mini.statusline (имя
 -- ветки): без него секция всегда пустая, писать некому в vim.b.*_summary_string.
 require("mini.git").setup()
+require("config.git_diff") -- метки изменённых относительно HEAD строк
 
 require("mini.statusline").setup()
 
