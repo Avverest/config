@@ -12,6 +12,8 @@ vim.pack.add({
 	{ src = "https://github.com/MunifTanjim/nui.nvim" }, -- зависимость noice.nvim
 	{ src = "https://github.com/stevearc/overseer.nvim" }, -- запуск и список задач
 	{ src = "https://github.com/Bekaboo/dropbar.nvim" }, -- breadcrumbs в winbar (LSP/treesitter)
+	-- { src = "https://forge.barrettruth.com/barrettruth/diffs.nvim" },
+
 	-- Автодополнение — встроенное, vim.lsp.completion (config/completion.lua)
 
 	-- Themes
@@ -42,8 +44,8 @@ local ts_parsers = {
 	"gdscript",
 	"gdshader",
 	"godot_resource", -- project.godot, *.tres, *.tscn
-  "svelte",
-  "php",
+	"svelte",
+	"php",
 }
 require("nvim-treesitter").install(ts_parsers)
 
